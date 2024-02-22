@@ -32,7 +32,7 @@ export async function save({ from }: { from: string | undefined }) {
   // hash filenames
   const timingByHash: Record<string, number> = {};
   for (const [file, timing] of Object.entries(timingByFile)) {
-    timingByHash[hash(file)] = Math.round(timing * 1000);
+    timingByHash[hash(file)] = Math.round(timing * 1000); // convert to ms
   }
 
   // save timings

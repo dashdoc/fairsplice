@@ -45,7 +45,6 @@ export async function getTimings(hashes: string[]) {
   // convert results to a map of hash -> average timing
   const timingByHash: Record<string, number> = {};
   for (const [i, hash] of hashes.entries()) {
-    console.log(results[i]);
     const result = results[i];
     if (
       typeof result === "number" ||

@@ -39,7 +39,6 @@ export async function select({
 
   // get hash times
   const hashTimesMap = await getTimings(Object.values(fileToHash));
-  console.log(hashTimesMap);
 
   // warn if missing timings
   for (const file of files) {
@@ -55,9 +54,12 @@ export async function select({
 
   const [selected, estimatedTiming] = splitFiles(hashTimesMap, totalInt);
 
+  console.log(
+    `Selected ${selected[indexInt].length} files with an estimated time of ${estimatedTiming[indexInt]}ms (using ${DEFAULT_TIMING_IF_MISSING}ms for files without timing)`
+  );
+
   // write to file
-  const filenames = selected[indexInt]
-    .map((hash) => hashToFile[hash])
-    .join("\n");
+  const filenames =
+    selected[indexInt].map((hash) => hashToFile[hash]).join("\n") + "\n";
   await Bun.write(out, filenames);
 }
