@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 import { save } from "./src/commands/save";
 import { select } from "./src/commands/select";
 import { parseArgs } from "util";
