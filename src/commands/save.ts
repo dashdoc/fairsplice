@@ -1,5 +1,4 @@
 import { saveTimings } from "../backend/redis";
-import { hash } from "../lib/hash";
 import { parseJunit } from "../lib/junit";
 
 export async function save({ from }: { from: string | undefined }) {
@@ -29,12 +28,11 @@ export async function save({ from }: { from: string | undefined }) {
     timingByFile[testCase.file] += testCase.time;
   }
 
-  // hash filenames
-  const timingByHash: Record<string, number> = {};
+  // convert to ms
   for (const [file, timing] of Object.entries(timingByFile)) {
-    timingByHash[hash(file)] = Math.round(timing * 1000); // convert to ms
+    timingByFile[file] = Math.round(timing * 1000);
   }
 
   // save timings
-  await saveTimings(timingByHash);
+  await saveTimings(timingByFile);
 }

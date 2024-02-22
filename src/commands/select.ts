@@ -1,7 +1,6 @@
 import { Glob } from "bun";
 import { getTimings } from "../backend/redis";
 import { splitFiles } from "../lib/splitFiles";
-import { hash } from "../lib/hash";
 import { DEFAULT_TIMING_IF_MISSING } from "../config";
 
 export async function select({
@@ -51,23 +50,14 @@ export async function select({
     }
   }
 
-  // hash files
-  let hashToFile: Record<string, string> = {};
-  let fileToHash: Record<string, string> = {};
-  for (const file of files) {
-    const fileHash = hash(file);
-    hashToFile[fileHash] = file;
-    fileToHash[file] = fileHash;
-  }
-
-  // get hash times
-  const hashTimesMap = await getTimings(Object.values(fileToHash));
+  // get file times
+  const filesTimesMap = await getTimings(files);
 
   // warn if missing timings
   for (const file of files) {
-    if (!hashTimesMap[fileToHash[file]]) {
+    if (!filesTimesMap[file]) {
       console.warn(`No timing found for file: ${file}`);
-      hashTimesMap[fileToHash[file]] = DEFAULT_TIMING_IF_MISSING;
+      filesTimesMap[file] = DEFAULT_TIMING_IF_MISSING;
     }
   }
 
@@ -75,14 +65,13 @@ export async function select({
   const totalInt = parseInt(total, 10);
   const indexInt = parseInt(index, 10);
 
-  const [selected, estimatedTiming] = splitFiles(hashTimesMap, totalInt);
+  const [selected, estimatedTiming] = splitFiles(filesTimesMap, totalInt);
 
   console.log(
     `Selected ${selected[indexInt].length} files with an estimated time of ${estimatedTiming[indexInt]}ms (using ${DEFAULT_TIMING_IF_MISSING}ms for files without timing)`
   );
 
   // write to file
-  const filenames =
-    selected[indexInt].map((hash) => hashToFile[hash]).join(" ") + "\n";
+  const filenames = selected[indexInt].join(" ") + "\n";
   await Bun.write(out, filenames);
 }

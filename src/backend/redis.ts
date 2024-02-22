@@ -12,15 +12,15 @@ async function getClient() {
   return client;
 }
 
-function getKey(hash: string) {
-  return `${REDIS_KEY_PREFIX}:${hash}`;
+function getKey(file: string) {
+  return `${REDIS_KEY_PREFIX}:${file}`;
 }
 
-export async function saveTimings(timingByHash: Record<string, number>) {
+export async function saveTimings(timingByFile: Record<string, number>) {
   const client = await getClient();
   const transaction = client.multi();
-  for (const [hash, timing] of Object.entries(timingByHash)) {
-    const key = getKey(hash);
+  for (const [file, timing] of Object.entries(timingByFile)) {
+    const key = getKey(file);
     // first we push the new timing
     transaction.lPush(key, timing.toString());
     // then we trim the list to keep only the last TIMINGS_TO_KEEP timings
@@ -29,22 +29,22 @@ export async function saveTimings(timingByHash: Record<string, number>) {
     transaction.expire(key, 2592000);
   }
   await transaction.exec();
-  console.log(`Saved timings for ${Object.keys(timingByHash).length} files`);
+  console.log(`Saved timings for ${Object.keys(timingByFile).length} files`);
 }
 
-export async function getTimings(hashes: string[]) {
+export async function getTimings(files: string[]) {
   const client = await getClient();
-  // fetch the last NUMBER_OF_TIMINGS_TO_KEEP timings for each hash
+  // fetch the last NUMBER_OF_TIMINGS_TO_KEEP timings for each file
   const transaction = client.multi();
-  for (const hash of hashes) {
-    const key = getKey(hash);
+  for (const file of files) {
+    const key = getKey(file);
     transaction.lRange(key, 0, NUMBER_OF_TIMINGS_TO_KEEP - 1);
   }
   const results = await transaction.exec();
 
-  // convert results to a map of hash -> average timing
-  const timingByHash: Record<string, number> = {};
-  for (const [i, hash] of hashes.entries()) {
+  // convert results to a map of file -> average timing
+  const timingByFile: Record<string, number> = {};
+  for (const [i, file] of files.entries()) {
     const result = results[i];
     if (
       typeof result === "number" ||
@@ -56,7 +56,7 @@ export async function getTimings(hashes: string[]) {
     }
     const timings = Array.from(result).map(Number);
     const timing = average(timings);
-    timingByHash[hash] = timing;
+    timingByFile[file] = timing;
   }
-  return timingByHash;
+  return timingByFile;
 }
