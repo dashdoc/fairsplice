@@ -34,4 +34,25 @@ describe("splitFiles", () => {
     expect(bucketTimes).toEqual([10, 0, 0]);
     expect(buckets).toEqual([["a"], [], []]);
   });
+
+  it("should have a stable output no matter the order", () => {
+    const fileTimesMap1 = {
+      a: 10,
+      e: 50,
+      b: 20,
+      c: 30,
+      d: 40,
+    };
+    const fileTimesMap2 = {
+      d: 40,
+      a: 10,
+      e: 50,
+      c: 30,
+      b: 20,
+    };
+    const [buckets1, bucketTimes1] = splitFiles(fileTimesMap1, 2);
+    const [buckets2, bucketTimes2] = splitFiles(fileTimesMap2, 2);
+    expect(bucketTimes1).toEqual(bucketTimes2);
+    expect(buckets1).toEqual(buckets2);
+  });
 });

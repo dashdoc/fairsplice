@@ -1,5 +1,3 @@
-const DEFAULT_TIMING = 1000; // 1 second
-
 export function splitFiles(
   fileTimesMap: Record<string, number /* in milliseconds */>,
   splitTotal: number
@@ -21,11 +19,7 @@ export function splitFiles(
     );
     // Add file to bucket
     buckets[minBucket].push(file);
-    if (time === 0) {
-      bucketTimes[minBucket] += DEFAULT_TIMING;
-    } else {
-      bucketTimes[minBucket] += time;
-    }
+    bucketTimes[minBucket] += time;
   }
 
   return [buckets, bucketTimes];
