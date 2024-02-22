@@ -2,8 +2,7 @@ import { Glob } from "bun";
 import { getTimings } from "../backend/redis";
 import { splitFiles } from "../lib/splitFiles";
 import { hash } from "../lib/hash";
-
-const DEFAULT_TIMING = 1000; // 1 second
+import { DEFAULT_TIMING_IF_MISSING } from "../config";
 
 export async function select(
   options: Record<string, string[] | string | boolean | undefined>
@@ -38,7 +37,7 @@ export async function select(
   for (const file of files) {
     if (!hashTimesMap[fileToHash[file]]) {
       console.warn(`No timing found for file: ${file}`);
-      hashTimesMap[fileToHash[file]] = DEFAULT_TIMING;
+      hashTimesMap[fileToHash[file]] = DEFAULT_TIMING_IF_MISSING;
     }
   }
 

@@ -8,5 +8,20 @@ export function parseJunit(xmlString: string) {
   });
   let junit = parser.parse(xmlString);
 
-  return junit.testsuites.testsuite.testcase;
+  const testCases: Array<{ file: string; time: number }> = [];
+  const suites = junit.testsuites.testsuite;
+
+  if (suites.length === undefined) {
+    for (const testcase of suites.testcase) {
+      testCases.push({ file: testcase.file, time: testcase.time });
+    }
+    return testCases;
+  }
+
+  for (const testsuite of suites) {
+    for (const testcase of testsuite.testcase) {
+      testCases.push({ file: testcase.file, time: testcase.time });
+    }
+  }
+  return testCases;
 }
