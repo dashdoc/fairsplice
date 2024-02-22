@@ -1,5 +1,5 @@
 import { Glob } from "bun";
-import { getTimings } from "../backend/backend";
+import { getTimings } from "../backend/redis";
 import { splitFiles } from "../lib/splitFiles";
 import { hash } from "../lib/hash";
 

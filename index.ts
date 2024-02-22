@@ -29,11 +29,13 @@ const { positionals, values } = parseArgs({
   allowPositionals: true,
 });
 
-if (values.help) {
+const command = positionals[2];
+
+if (values.help || !command) {
   console.log(`
 Usage: fairsplice [save|select] [options]
 
-Make sure the environment variables FAIRSPLICE_BACKEND_URL and FAIRSPLICE_BACKEND_KEY are set.
+Make sure the environment variable FAIRSPLICE_REDIS_URL is set.
 
 fairsplice save
 ---------------
@@ -55,12 +57,19 @@ Example: fairsplice select --pattern "test_*.py" --pattern "tests*.py" --total 3
   process.exit(0);
 }
 
-const command = positionals[2];
+if (!process.env.FAIRSPLICE_REDIS_URL) {
+  console.error(
+    "Please set the FAIRSPLICE_REDIS_URL environment variable to use fairsplice."
+  );
+  process.exit(1);
+}
 
 if (command === "save") {
-  save(values);
+  await save(values);
+  process.exit(0);
 } else if (command === "select") {
-  select(values);
+  await select(values);
+  process.exit(0);
 } else {
   console.error(
     `Invalid command "${command}". Available commands: save, select.`

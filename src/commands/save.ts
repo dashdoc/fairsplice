@@ -1,4 +1,4 @@
-import { saveTimings } from "../backend/backend";
+import { saveTimings } from "../backend/redis";
 import { hash } from "../lib/hash";
 import { parseJunit } from "../lib/junit";
 
