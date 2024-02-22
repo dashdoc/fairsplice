@@ -47,7 +47,5 @@ export async function select(
 
   const [selected, estimatedTiming] = splitFiles(hashTimesMap, total);
 
-  console.log("Estimated timing:", estimatedTiming);
-  console.log("Selected files:");
   console.log(selected[index].map((hash) => hashToFile[hash]).join(" "));
 }
