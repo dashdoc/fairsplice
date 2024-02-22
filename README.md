@@ -1,5 +1,7 @@
 # Fairsplice
 
+**Warning: this project is still in very early development!**
+
 Fairsplice is a CLI tool designed to optimize test distribution across multiple workers. By intelligently selecting and saving test cases, Fairsplice ensures balanced workload distribution for your CI/CD pipelines, making tests run time more predictable.
 
 We found Github Actions lacking when compared to CircleCI which has [tests splitting](https://circleci.com/docs/parallelism-faster-jobs/#how-test-splitting-works) based on timings.
