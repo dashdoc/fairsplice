@@ -59,6 +59,8 @@ fairsplice select --pattern "<pattern>" [--pattern "<anotherPattern>" ...] --tot
 - `--total <total>`: Total number of workers in the test environment.
 - `--index <index>`: Index of the current worker (0-based).
 - `--out <file>`: File to write selected test files to (newline separated)
+- `--replace-from <string>`: Substring to replace in the file paths (can be used multiple times)
+- `--replace-to <string>`: Replacement for the substring (can be used multiple times but must match the number of --replace-from)
 
 Example:
 

@@ -26,6 +26,14 @@ const { positionals, values } = parseArgs({
     index: {
       type: "string",
     },
+    ["replace-from"]: {
+      type: "string",
+      multiple: true,
+    },
+    ["replace-to"]: {
+      type: "string",
+      multiple: true,
+    },
     out: {
       type: "string",
     },
@@ -53,10 +61,12 @@ Example: fairsplice save --from results/junit.xml
 fairsplice select
 -----------------
 Available options:
-    --pattern <pattern>  Pattern to match test files (can be used multiple times)
-    --total <total>      Total number of workers
-    --index <index>      Worker index
-    --out <file>         File to write selected test files to (newline separated)
+    --pattern <pattern>     Pattern to match test files (can be used multiple times)
+    --total <total>         Total number of workers
+    --index <index>         Worker index
+    --out <file>            File to write selected test files to (newline separated)
+    --replace-from <string> Substring to replace in the file paths (can be used multiple times)
+    --replace-to <string>   Replacement for the substring (can be used multiple times but must match the number of --replace-from)
 
 Example: fairsplice select --pattern "test_*.py" --pattern "tests*.py" --total 3 --index 1 --out selected.txt
   `);
@@ -79,6 +89,8 @@ if (command === "save") {
     total: values.total,
     index: values.index,
     out: values.out,
+    replaceFrom: values["replace-from"],
+    replaceTo: values["replace-to"],
   });
   process.exit(0);
 } else {

@@ -8,16 +8,27 @@ export async function select({
   patterns,
   total,
   index,
+  replaceFrom,
+  replaceTo,
   out,
 }: {
   patterns: string[] | undefined;
   total: string | undefined;
   index: string | undefined;
+  replaceFrom: string[] | undefined;
+  replaceTo: string[] | undefined;
   out: string | undefined;
 }) {
   if (!patterns || !total || !index || !out) {
     console.warn(
       "Please provide the --pattern and --total and --index and --out flags."
+    );
+    process.exit(1);
+  }
+
+  if (replaceFrom && replaceTo && replaceFrom.length !== replaceTo.length) {
+    console.warn(
+      "The number of --replace-from and --replace-to flags must match."
     );
     process.exit(1);
   }
@@ -29,6 +40,18 @@ export async function select({
     files.push(...glob.scanSync());
   }
 
+  // replace strings
+  if (replaceFrom && replaceTo) {
+    for (let i = 0; i < replaceFrom.length; i++) {
+      const from = replaceFrom[i];
+      const to = replaceTo[i];
+      files.forEach((file, index) => {
+        files[index] = file.replace(from, to);
+      });
+    }
+  }
+
+  // hash files
   let hashToFile: Record<string, string> = {};
   let fileToHash: Record<string, string> = {};
   for (const file of files) {
@@ -60,6 +83,6 @@ export async function select({
 
   // write to file
   const filenames =
-    selected[indexInt].map((hash) => hashToFile[hash]).join("\n") + "\n";
+    selected[indexInt].map((hash) => hashToFile[hash]).join(" ") + "\n";
   await Bun.write(out, filenames);
 }
