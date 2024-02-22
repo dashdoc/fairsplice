@@ -22,3 +22,10 @@ Available options:
 
 Example: fairsplice select --pattern "test_*.py" --pattern "tests*.py" --total 3 --index 1
 ```
+
+
+# Improvements / to do
+
+- add tests
+- use https://redis.io/docs/connect/clients/nodejs/ to be more portable instead of the Vercel API
+- create Github Action
