@@ -4,19 +4,27 @@ import { splitFiles } from "../lib/splitFiles";
 import { hash } from "../lib/hash";
 import { DEFAULT_TIMING_IF_MISSING } from "../config";
 
-export async function select(
-  options: Record<string, string[] | string | boolean | undefined>
-) {
-  if (!options.pattern || !options.total || !options.index) {
+export async function select({
+  patterns,
+  total,
+  index,
+  out,
+}: {
+  patterns: string[] | undefined;
+  total: string | undefined;
+  index: string | undefined;
+  out: string | undefined;
+}) {
+  if (!patterns || !total || !index || !out) {
     console.warn(
-      "Please provide the --pattern and --total and --index options."
+      "Please provide the --pattern and --total and --index and --out flags."
     );
     process.exit(1);
   }
 
   // get files
   const files: string[] = [];
-  for (const pattern of options.pattern) {
+  for (const pattern of patterns) {
     const glob = new Glob(pattern);
     files.push(...glob.scanSync());
   }
@@ -42,10 +50,14 @@ export async function select(
   }
 
   // select files
-  const total = parseInt(options.total, 10);
-  const index = parseInt(options.index, 10);
+  const totalInt = parseInt(total, 10);
+  const indexInt = parseInt(index, 10);
 
-  const [selected, estimatedTiming] = splitFiles(hashTimesMap, total);
+  const [selected, estimatedTiming] = splitFiles(hashTimesMap, totalInt);
 
-  console.log(selected[index].map((hash) => hashToFile[hash]).join(" "));
+  // write to file
+  const filenames = selected[indexInt]
+    .map((hash) => hashToFile[hash])
+    .join("\n");
+  await Bun.write(out, filenames);
 }

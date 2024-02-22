@@ -58,6 +58,7 @@ fairsplice select --pattern "<pattern>" [--pattern "<anotherPattern>" ...] --tot
 - `--pattern "<pattern>"`: Pattern to match test files. Can be used multiple times to specify multiple patterns.
 - `--total <total>`: Total number of workers in the test environment.
 - `--index <index>`: Index of the current worker (0-based).
+- `--out <file>`: File to write selected test files to (newline separated)
 
 Example:
 

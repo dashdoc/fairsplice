@@ -26,6 +26,9 @@ const { positionals, values } = parseArgs({
     index: {
       type: "string",
     },
+    out: {
+      type: "string",
+    },
   },
   strict: true,
   allowPositionals: true,
@@ -53,8 +56,9 @@ Available options:
     --pattern <pattern>  Pattern to match test files (can be used multiple times)
     --total <total>      Total number of workers
     --index <index>      Worker index
+    --out <file>         File to write selected test files to (newline separated)
 
-Example: fairsplice select --pattern "test_*.py" --pattern "tests*.py" --total 3 --index 1
+Example: fairsplice select --pattern "test_*.py" --pattern "tests*.py" --total 3 --index 1 --out selected.txt
   `);
   process.exit(0);
 }
@@ -67,10 +71,15 @@ if (!process.env.FAIRSPLICE_REDIS_URL) {
 }
 
 if (command === "save") {
-  await save(values);
+  await save({ from: values.from });
   process.exit(0);
 } else if (command === "select") {
-  await select(values);
+  await select({
+    patterns: values.pattern,
+    total: values.total,
+    index: values.index,
+    out: values.out,
+  });
   process.exit(0);
 } else {
   console.error(

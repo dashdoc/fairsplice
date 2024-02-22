@@ -2,10 +2,8 @@ import { saveTimings } from "../backend/redis";
 import { hash } from "../lib/hash";
 import { parseJunit } from "../lib/junit";
 
-export async function save(
-  options: Record<string, string[] | string | boolean | undefined>
-) {
-  if (!options.from) {
+export async function save({ from }: { from: string | undefined }) {
+  if (!from) {
     console.warn(
       "Please provide the --from option to specify the file to read test results from"
     );
@@ -13,7 +11,7 @@ export async function save(
   }
 
   // read junit xml file
-  const junitXmlFile = Bun.file(options.from);
+  const junitXmlFile = Bun.file(from);
   const xmlString = await junitXmlFile.text();
 
   // parse junit xml
