@@ -1,6 +1,6 @@
-# FairSplice
+# Fairsplice
 
-FairSplice is a CLI tool designed to optimize test distribution across multiple workers. By intelligently selecting and saving test cases, FairSplice ensures balanced workload distribution for your CI/CD pipelines, making tests run time more predictable.
+Fairsplice is a CLI tool designed to optimize test distribution across multiple workers. By intelligently selecting and saving test cases, Fairsplice ensures balanced workload distribution for your CI/CD pipelines, making tests run time more predictable.
 
 We found Github Actions lacking when compared to CircleCI which has [tests splitting](https://circleci.com/docs/parallelism-faster-jobs/#how-test-splitting-works) based on timings.
 
@@ -13,25 +13,15 @@ This tool uses instead a Redis server to store the last 10 timings for each test
 This project is built using [Bun](https://bun.sh) and [Redis](https://redis.io/).
 
 Ensure you have Bun installed.
-
-Then run the following command to install dependencies:
-
-```bash
-bun install
-```
-
-To build a binary, you can run:
+To launch it, run
 
 ```bash
-bun compile
+bunx fairsplice
 ```
-
-This will create a `fairsplice` binary in the current directory.
-
 
 ## Configuration
 
-Before using FairSplice, set the environment variable `FAIRSPLICE_REDIS_URL` to your Redis server URL. This is necessary for storing and retrieving test case information.
+Before using Fairsplice, set the environment variable `FAIRSPLICE_REDIS_URL` to your Redis server URL. This is necessary for storing and retrieving test case information.
 
 ```bash
 export FAIRSPLICE_REDIS_URL='redis://myuser:mypassword@your-redis-url.upstash.io:33683'
@@ -39,7 +29,7 @@ export FAIRSPLICE_REDIS_URL='redis://myuser:mypassword@your-redis-url.upstash.io
 
 ## Usage
 
-FairSplice supports two main commands: `save` and `select`.
+Fairsplice supports two main commands: `save` and `select`.
 
 ### Saving Test Results
 
@@ -105,4 +95,4 @@ bun test [--watch]
 
 ## License
 
-FairSplice is open-source software licensed under the MIT license.
+Fairsplice is open-source software licensed under the MIT license.
