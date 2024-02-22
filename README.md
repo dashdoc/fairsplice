@@ -2,14 +2,15 @@
 
 FairSplice is a CLI tool designed to optimize test distribution across multiple workers. By intelligently selecting and saving test cases, FairSplice ensures balanced workload distribution for your CI/CD pipelines, making tests run time more predictable.
 
-## Features
+We found Github Actions lacking when compared to CircleCI which has [tests splitting](https://circleci.com/docs/parallelism-faster-jobs/#how-test-splitting-works) based on timings.
 
-- **Save Test Results**: Easily save your test results from a specified file to be analyzed and distributed.
-- **Select Test Cases**: Dynamically select test cases based on patterns, supporting multiple environments with varying numbers of workers.
+There are a number of projects like [Split tests](https://github.com/marketplace/actions/split-tests) but they require uploading and downloading Junit XML files and merging them, or committing the Junit files to have them when running the tests.
 
-This project is built using [Bun](https://bun.sh) and [Redis](https://redis.io/).
+This tool uses instead a Redis server to store the last 10 timings for each test file and uses the average of these to select tests. It is easy to setup if you have a Redis server running.
 
 ## Installation
+
+This project is built using [Bun](https://bun.sh) and [Redis](https://redis.io/).
 
 Ensure you have Bun installed.
 
