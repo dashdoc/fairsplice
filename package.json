@@ -1,0 +1,17 @@
+{
+  "name": "fairsplice",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "compile": "bun build ./index.ts --compile --outfile fairsplice"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.3.4"
+  }
+}
