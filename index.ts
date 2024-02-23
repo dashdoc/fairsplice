@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { save } from "./src/commands/save";
-import { select } from "./src/commands/select";
+import { split } from "./src/commands/split";
 import { parseArgs } from "util";
 
 const { positionals, values } = parseArgs({
@@ -15,15 +15,12 @@ const { positionals, values } = parseArgs({
     from: {
       type: "string",
     },
-    // select options
+    // split options
     pattern: {
       type: "string",
       multiple: true,
     },
     total: {
-      type: "string",
-    },
-    index: {
       type: "string",
     },
     ["replace-from"]: {
@@ -46,7 +43,7 @@ const command = positionals[2];
 
 if (values.help || !command) {
   console.log(`
-Usage: fairsplice [save|select] [options]
+Usage: fairsplice [save|split] [options]
 
 Make sure the environment variable FAIRSPLICE_REDIS_URL is set.
 
@@ -58,17 +55,16 @@ Available options:
 Example: fairsplice save --from results/junit.xml
 
 
-fairsplice select
+fairsplice split
 -----------------
 Available options:
     --pattern <pattern>     Pattern to match test files (can be used multiple times)
     --total <total>         Total number of workers
-    --index <index>         Worker index
-    --out <file>            File to write selected test files to (newline separated)
+    --out <file>            File to write test files to (JSON)
     --replace-from <string> Substring to replace in the file paths (can be used multiple times)
     --replace-to <string>   Replacement for the substring (can be used multiple times but must match the number of --replace-from)
 
-Example: fairsplice select --pattern "test_*.py" --pattern "tests*.py" --total 3 --index 1 --out selected.txt
+Example: fairsplice split --pattern "test_*.py" --pattern "tests*.py" --total 3 --out split.json
   `);
   process.exit(0);
 }
@@ -83,11 +79,10 @@ if (!process.env.FAIRSPLICE_REDIS_URL) {
 if (command === "save") {
   await save({ from: values.from });
   process.exit(0);
-} else if (command === "select") {
-  await select({
+} else if (command === "split") {
+  await split({
     patterns: values.pattern,
     total: values.total,
-    index: values.index,
     out: values.out,
     replaceFrom: values["replace-from"],
     replaceTo: values["replace-to"],
@@ -95,7 +90,7 @@ if (command === "save") {
   process.exit(0);
 } else {
   console.error(
-    `Invalid command "${command}". Available commands: save, select.`
+    `Invalid command "${command}". Available commands: save, split.`
   );
   process.exit(1);
 }

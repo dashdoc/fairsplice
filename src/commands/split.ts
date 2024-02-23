@@ -3,25 +3,21 @@ import { getTimings } from "../backend/redis";
 import { splitFiles } from "../lib/splitFiles";
 import { DEFAULT_TIMING_IF_MISSING } from "../config";
 
-export async function select({
+export async function split({
   patterns,
   total,
-  index,
   replaceFrom,
   replaceTo,
   out,
 }: {
   patterns: string[] | undefined;
   total: string | undefined;
-  index: string | undefined;
   replaceFrom: string[] | undefined;
   replaceTo: string[] | undefined;
   out: string | undefined;
 }) {
-  if (!patterns || !total || !index || !out) {
-    console.warn(
-      "Please provide the --pattern and --total and --index and --out flags."
-    );
+  if (!patterns || !total || !out) {
+    console.warn("Please provide the --pattern and --total and --out flags.");
     process.exit(1);
   }
 
@@ -61,17 +57,14 @@ export async function select({
     }
   }
 
-  // select files
+  // split files
   const totalInt = parseInt(total, 10);
-  const indexInt = parseInt(index, 10);
-
-  const [selected, estimatedTiming] = splitFiles(filesTimesMap, totalInt);
+  const [buckets, estimatedTiming] = splitFiles(filesTimesMap, totalInt);
 
   console.log(
-    `Selected ${selected[indexInt].length} files with an estimated time of ${estimatedTiming[indexInt]}ms (using ${DEFAULT_TIMING_IF_MISSING}ms for files without timing)`
+    `Split ${files.length} files with an estimated time of ${estimatedTiming[0]}ms (using ${DEFAULT_TIMING_IF_MISSING}ms for files without timing)`
   );
 
   // write to file
-  const filenames = selected[indexInt].join(" ") + "\n";
-  await Bun.write(out, filenames);
+  await Bun.write(out, JSON.stringify(buckets));
 }
