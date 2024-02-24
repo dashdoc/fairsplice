@@ -44,7 +44,7 @@ describe("parseJunit", () => {
       "src/lib/fixtures/playwright.junit.xml"
     ).text();
     const testCases = parseJunit(xmlString);
-    expect(testCases).toHaveLength(6);
+    expect(testCases).toHaveLength(7);
     expect(testCases[0]).toEqual({
       file: "flow/slot-booking/bookSlotAsSiteOwner.spec.ts",
       time: 13.651,

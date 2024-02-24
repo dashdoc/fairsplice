@@ -16,4 +16,8 @@
         <testcase name="Several 401 trigger the logout" classname="generic/auth/logout-401.spec.ts" time="3.142">
         </testcase>
     </testsuite>
+    <testsuite file="to-management/transport-creation/transportCreationSmartSuggests.spec.ts" timestamp="2024-02-23T16:31:18.447Z" hostname="chromium" tests="1" failures="0" skipped="0" time="14.549" errors="0">
+        <testcase name="suggested means with no plate" classname="to-management/transport-creation/transportCreationSmartSuggests.spec.ts" time="28.313">
+        </testcase>
+    </testsuite>
 </testsuites>

@@ -5,6 +5,7 @@ export function parseJunit(xmlString: string) {
     ignoreAttributes: false,
     attributeNamePrefix: "", // to avoid prefixing attributes with @
     parseAttributeValue: true, // turns number strings into numbers
+    isArray: (name) => name === "testcase", // treat all nodes with name "testcase" as arrays
   });
   let junit = parser.parse(xmlString);
 
