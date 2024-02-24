@@ -38,4 +38,16 @@ describe("parseJunit", () => {
       time: 107.427,
     });
   });
+
+  it("should work with playwright junit xml", async () => {
+    const xmlString = await Bun.file(
+      "src/lib/fixtures/playwright.junit.xml"
+    ).text();
+    const testCases = parseJunit(xmlString);
+    expect(testCases).toHaveLength(6);
+    expect(testCases[0]).toEqual({
+      file: "flow/slot-booking/bookSlotAsSiteOwner.spec.ts",
+      time: 13.651,
+    });
+  });
 });

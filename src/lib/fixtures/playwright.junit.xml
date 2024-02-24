@@ -1,0 +1,19 @@
+<testsuites id="" name="" tests="39" failures="0" skipped="0" errors="0" time="843.3940180000001">
+    <testsuite file="tests/flow/slot-booking/bookSlotAsSiteOwner.spec.ts" timestamp="2024-02-23T16:31:18.447Z" hostname="chromium" tests="6" failures="0" skipped="0" time="72.338" errors="0">
+        <testcase name="Can book a slot and find it with search bar" classname="flow/slot-booking/bookSlotAsSiteOwner.spec.ts" time="13.651">
+        </testcase>
+        <testcase name="Can book the last slot of the day by scrolling and find it with search bar" classname="flow/slot-booking/bookSlotAsSiteOwner.spec.ts" time="10.635">
+        </testcase>
+        <testcase name="Can book a slot with multiple references and find it with each reference" classname="flow/slot-booking/bookSlotAsSiteOwner.spec.ts" time="12.804">
+        </testcase>
+        </testcase>
+    </testsuite>
+    <testsuite file="tests/generic/auth/logout-401.spec.ts" timestamp="2024-02-23T16:31:18.447Z" hostname="chromium" tests="3" failures="0" skipped="0" time="14.549" errors="0">
+        <testcase name="Stay logged" classname="generic/auth/logout-401.spec.ts" time="5.688">
+        </testcase>
+        <testcase name="One 401 triggers the logout" classname="generic/auth/logout-401.spec.ts" time="5.719">
+        </testcase>
+        <testcase name="Several 401 trigger the logout" classname="generic/auth/logout-401.spec.ts" time="3.142">
+        </testcase>
+    </testsuite>
+</testsuites>
