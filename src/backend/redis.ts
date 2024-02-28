@@ -29,7 +29,6 @@ export async function saveTimings(timingByFile: Record<string, number>) {
     transaction.expire(key, 2592000);
   }
   await transaction.exec();
-  console.log(`Saved timings for ${Object.keys(timingByFile).length} files`);
 }
 
 export async function getTimings(files: string[]) {

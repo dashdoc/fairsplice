@@ -35,4 +35,8 @@ export async function save({ from }: { from: string | undefined }) {
 
   // save timings
   await saveTimings(timingByFile);
+  console.log(
+    "Timings saved for files:\n",
+    Object.keys(timingByFile).join("\n - ")
+  );
 }
