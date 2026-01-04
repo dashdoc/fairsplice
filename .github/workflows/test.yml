@@ -100,21 +100,15 @@ jobs:
             fairsplice-timings-${{ github.ref }}-
             fairsplice-timings-
 
-      # If no cached timings, generate initial ones
-      - name: Generate initial timings (first run only)
-        if: steps.check-cache.outputs.cache-hit != 'true'
+      - name: Show timings status
         run: |
-          echo "No cached timings found, generating initial timings..."
-          bun test tests/dummy/ --reporter=junit --reporter-outfile=junit-results.xml
-          bun run index.ts save --from junit-results.xml
-          echo "Initial timings:"
-          cat .fairsplice-timings.json
-
-      - name: Show cached timings
-        if: steps.check-cache.outputs.cache-hit == 'true'
-        run: |
-          echo "Using cached timings:"
-          cat .fairsplice-timings.json
+          if [ -f .fairsplice-timings.json ]; then
+            echo "Using cached timings from previous run:"
+            cat .fairsplice-timings.json
+          else
+            echo "No cached timings found - first run will use default timing (10s per test)"
+            echo "Timings will be collected after this run for future optimization"
+          fi
 
       # Split tests for workers
       - name: Split tests for 3 workers
