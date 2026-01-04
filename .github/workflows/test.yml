@@ -124,6 +124,7 @@ jobs:
           name: test-split
           path: split.json
 
+  # Workers don't need fairsplice installed - they just read split.json and run tests
   integration-worker:
     name: Worker ${{ matrix.worker }}
     needs: integration-prepare
@@ -139,47 +140,31 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install
+      # Note: No need to install fairsplice deps - workers just run tests
 
-      # Download the split configuration from prepare job
       - name: Download split configuration
         uses: actions/download-artifact@v4
         with:
           name: test-split
 
-      - name: Show assigned tests for worker ${{ matrix.worker }}
+      - name: Get assigned tests
+        id: get-tests
         run: |
-          echo "Worker ${{ matrix.worker }} assigned tests:"
-          cat split.json | bun -e "
-            const split = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
-            const workerTests = split[${{ matrix.worker }}] || [];
-            console.log('Files to run:', workerTests);
-            console.log('Number of files:', workerTests.length);
-          "
+          TESTS=$(jq -r '.[${{ matrix.worker }}] | join(" ")' split.json)
+          echo "files=$TESTS" >> $GITHUB_OUTPUT
+          echo "Worker ${{ matrix.worker }} assigned: $TESTS"
 
-      # Run ONLY this worker's assigned tests
-      - name: Run worker ${{ matrix.worker }} tests
+      - name: Run tests
+        if: steps.get-tests.outputs.files != ''
         run: |
-          TESTS=$(cat split.json | bun -e "
-            const split = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
-            const workerTests = split[${{ matrix.worker }}] || [];
-            console.log(workerTests.join(' '));
-          ")
-          if [ -n "$TESTS" ]; then
-            echo "Running ONLY these tests: $TESTS"
-            bun test $TESTS --reporter=junit --reporter-outfile=junit-worker-${{ matrix.worker }}.xml
-          else
-            echo "No tests assigned to this worker"
-          fi
+          bun test ${{ steps.get-tests.outputs.files }} --reporter=junit --reporter-outfile=junit-worker-${{ matrix.worker }}.xml
 
-      # Upload this worker's results
-      - name: Upload worker results
+      - name: Upload results
+        if: steps.get-tests.outputs.files != ''
         uses: actions/upload-artifact@v4
         with:
           name: junit-worker-${{ matrix.worker }}
           path: junit-worker-${{ matrix.worker }}.xml
-          if-no-files-found: ignore
 
   # Collect results and update timings for next run
   integration-finalize:
