@@ -1,0 +1,123 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run unit tests
+        run: bun test src/
+
+  dummy-tests:
+    name: Dummy Tests with Variable Timings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run dummy tests and generate JUnit report
+        run: bun test tests/dummy/ --reporter=junit --reporter-outfile=junit-results.xml
+
+      - name: Display test results
+        run: cat junit-results.xml
+
+      - name: Save timings with fairsplice
+        run: bun run index.ts save --from junit-results.xml
+
+      - name: Display saved timings
+        run: cat .fairsplice-timings.json
+
+      - name: Split tests for 2 workers
+        run: |
+          bun run index.ts split --pattern "tests/dummy/*.test.ts" --total 2 --out split-2.json
+          echo "Split for 2 workers:"
+          cat split-2.json
+
+      - name: Split tests for 3 workers
+        run: |
+          bun run index.ts split --pattern "tests/dummy/*.test.ts" --total 3 --out split-3.json
+          echo "Split for 3 workers:"
+          cat split-3.json
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            junit-results.xml
+            .fairsplice-timings.json
+            split-2.json
+            split-3.json
+
+  fairsplice-integration:
+    name: Fairsplice Integration Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        worker: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run initial tests to gather timings
+        run: bun test tests/dummy/ --reporter=junit --reporter-outfile=junit-results.xml
+
+      - name: Save timings
+        run: bun run index.ts save --from junit-results.xml
+
+      - name: Split tests for 3 workers
+        run: bun run index.ts split --pattern "tests/dummy/*.test.ts" --total 3 --out split.json
+
+      - name: Display worker ${{ matrix.worker }} tests
+        run: |
+          echo "Worker ${{ matrix.worker }} assigned tests:"
+          cat split.json | bun -e "
+            const split = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
+            const workerTests = split[${{ matrix.worker }}] || [];
+            console.log('Files to run:', workerTests);
+            console.log('Number of files:', workerTests.length);
+          "
+
+      - name: Run worker ${{ matrix.worker }} tests
+        run: |
+          TESTS=$(cat split.json | bun -e "
+            const split = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
+            const workerTests = split[${{ matrix.worker }}] || [];
+            console.log(workerTests.join(' '));
+          ")
+          if [ -n "$TESTS" ]; then
+            echo "Running tests: $TESTS"
+            bun test $TESTS
+          else
+            echo "No tests assigned to this worker"
+          fi
