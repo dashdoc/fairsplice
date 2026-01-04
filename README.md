@@ -10,6 +10,76 @@ There are a number of projects like [Split tests](https://github.com/marketplace
 
 This tool stores test timings in a local JSON file, keeping the last 10 timings for each test file and using the average for splitting. No external database required!
 
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CI PIPELINE                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────┐
+  │   1. SPLIT PHASE    │
+  └─────────────────────┘
+
+  .fairsplice-timings.json          fairsplice split
+  ┌──────────────────────┐         ┌─────────────────┐
+  │ {                    │         │                 │
+  │   "test_a.py": [2.1],│ ──────▶ │  Load timings   │
+  │   "test_b.py": [5.3],│         │  + glob files   │
+  │   "test_c.py": [1.8] │         │                 │
+  │ }                    │         └────────┬────────┘
+  └──────────────────────┘                  │
+                                            ▼
+                              ┌─────────────────────────┐
+                              │   Distribute tests by   │
+                              │   timing (bin packing)  │
+                              └─────────────────────────┘
+                                            │
+              ┌─────────────────────────────┼─────────────────────────────┐
+              ▼                             ▼                             ▼
+    ┌───────────────────┐       ┌───────────────────┐       ┌───────────────────┐
+    │    Worker 0       │       │    Worker 1       │       │    Worker 2       │
+    │  ["test_b.py"]    │       │  ["test_a.py",    │       │  ["test_c.py"]    │
+    │   ~5.3s           │       │   "test_c.py"]    │       │   ~1.8s           │
+    └─────────┬─────────┘       │   ~3.9s           │       └─────────┬─────────┘
+              │                 └─────────┬─────────┘                 │
+              ▼                           ▼                           ▼
+    ┌───────────────────┐       ┌───────────────────┐       ┌───────────────────┐
+    │   Run tests       │       │   Run tests       │       │   Run tests       │
+    │   Output JUnit    │       │   Output JUnit    │       │   Output JUnit    │
+    └─────────┬─────────┘       └─────────┬─────────┘       └─────────┬─────────┘
+              │                           │                           │
+              └───────────────────────────┴───────────────────────────┘
+                                          │
+  ┌─────────────────────┐                 │
+  │   2. SAVE PHASE     │                 │
+  └─────────────────────┘                 │
+                                          ▼
+                              ┌─────────────────────────┐
+                              │    fairsplice save      │
+                              │    --from junit.xml     │
+                              └─────────────────────────┘
+                                          │
+                                          ▼
+                              ┌─────────────────────────┐
+                              │  Extract timings from   │
+                              │  JUnit XML results      │
+                              └─────────────────────────┘
+                                          │
+                                          ▼
+                              ┌──────────────────────┐
+                              │ .fairsplice-timings  │
+                              │ Updated with new     │
+                              │ timing data          │◀─── Cached/committed
+                              └──────────────────────┘     for next run
+```
+
+**Key concepts:**
+- **Split phase**: Before tests run, fairsplice distributes test files across workers based on historical timing data
+- **Save phase**: After tests complete, fairsplice extracts timing from JUnit XML and updates the timings file
+- **Bin packing**: Tests are assigned to workers to balance total execution time (heaviest tests first)
+- **Rolling average**: Keeps last 10 timings per test file, uses average for predictions
+
 ## Installation
 
 This project is built using [Bun](https://bun.sh).
