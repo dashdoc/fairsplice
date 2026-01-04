@@ -1,4 +1,4 @@
-import { saveTimings } from "../backend/redis";
+import { saveTimings } from "../backend/fileStorage";
 import { parseJunit } from "../lib/junit";
 
 export async function save({ from }: { from: string | undefined }) {

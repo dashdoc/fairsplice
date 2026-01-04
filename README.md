@@ -8,11 +8,11 @@ We found Github Actions lacking when compared to CircleCI which has [tests split
 
 There are a number of projects like [Split tests](https://github.com/marketplace/actions/split-tests) but they require uploading and downloading Junit XML files and merging them, or committing the Junit files to have them when running the tests.
 
-This tool uses instead a Redis server to store the last 10 timings for each test file and uses the average of these to split tests. It is easy to setup if you have a Redis server running.
+This tool stores test timings in a local JSON file, keeping the last 10 timings for each test file and using the average for splitting. No external database required!
 
 ## Installation
 
-This project is built using [Bun](https://bun.sh) and [Redis](https://redis.io/).
+This project is built using [Bun](https://bun.sh).
 
 Ensure you have Bun installed.
 To launch it, run
@@ -23,11 +23,29 @@ bunx fairsplice
 
 ## Configuration
 
-Before using Fairsplice, set the environment variable `FAIRSPLICE_REDIS_URL` to your Redis server URL. This is necessary for storing and retrieving test case information.
+Fairsplice stores timings in a local JSON file (default: `.fairsplice-timings.json` in the current directory).
+
+You can customize the file path using the `FAIRSPLICE_TIMINGS_FILE` environment variable:
 
 ```bash
-export FAIRSPLICE_REDIS_URL='redis://myuser:mypassword@your-redis-url.upstash.io:33683'
+export FAIRSPLICE_TIMINGS_FILE='/path/to/my-timings.json'
 ```
+
+### Using with GitHub Actions
+
+To persist timings across CI runs, you can use GitHub Actions cache:
+
+```yaml
+- name: Cache test timings
+  uses: actions/cache@v4
+  with:
+    path: .fairsplice-timings.json
+    key: fairsplice-timings-${{ github.ref }}
+    restore-keys: |
+      fairsplice-timings-
+```
+
+Alternatively, you can commit the timings file to your repository for simpler persistence.
 
 ## Usage
 

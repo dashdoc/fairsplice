@@ -1,5 +1,5 @@
 import { Glob } from "bun";
-import { getTimings } from "../backend/redis";
+import { getTimings } from "../backend/fileStorage";
 import { splitFiles } from "../lib/splitFiles";
 import { DEFAULT_TIMING_IF_MISSING } from "../config";
 

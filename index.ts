@@ -45,7 +45,8 @@ if (values.help || !command) {
   console.log(`
 Usage: fairsplice [save|split] [options]
 
-Make sure the environment variable FAIRSPLICE_REDIS_URL is set.
+Timings are stored in a local JSON file (default: .fairsplice-timings.json).
+Set FAIRSPLICE_TIMINGS_FILE environment variable to customize the file path.
 
 fairsplice save
 ---------------
@@ -67,13 +68,6 @@ Available options:
 Example: fairsplice split --pattern "test_*.py" --pattern "tests*.py" --total 3 --out split.json
   `);
   process.exit(0);
-}
-
-if (!process.env.FAIRSPLICE_REDIS_URL) {
-  console.error(
-    "Please set the FAIRSPLICE_REDIS_URL environment variable to use fairsplice."
-  );
-  process.exit(1);
 }
 
 if (command === "save") {
