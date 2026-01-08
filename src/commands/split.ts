@@ -9,18 +9,15 @@ export async function split({
   replaceFrom,
   replaceTo,
   out,
+  timingsFile,
 }: {
-  patterns: string[] | undefined;
-  total: string | undefined;
+  patterns: string[];
+  total: string;
   replaceFrom: string[] | undefined;
   replaceTo: string[] | undefined;
-  out: string | undefined;
+  out: string;
+  timingsFile: string;
 }) {
-  if (!patterns || !total || !out) {
-    console.warn("Please provide the --pattern and --total and --out flags.");
-    process.exit(1);
-  }
-
   if (replaceFrom && replaceTo && replaceFrom.length !== replaceTo.length) {
     console.warn(
       "The number of --replace-from and --replace-to flags must match."
@@ -47,7 +44,7 @@ export async function split({
   }
 
   // get file times
-  const filesTimesMap = await getTimings(files);
+  const filesTimesMap = await getTimings(timingsFile, files);
 
   // warn if missing timings
   for (const file of files) {

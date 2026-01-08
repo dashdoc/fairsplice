@@ -1,13 +1,13 @@
 import { average } from "../lib/average";
-import { NUMBER_OF_TIMINGS_TO_KEEP, TIMINGS_FILE_PATH } from "../config";
+import { NUMBER_OF_TIMINGS_TO_KEEP } from "../config";
 
 interface TimingsData {
   version: number;
   timings: Record<string, number[]>;
 }
 
-async function readTimingsFile(): Promise<TimingsData> {
-  const file = Bun.file(TIMINGS_FILE_PATH);
+async function readTimingsFile(filePath: string): Promise<TimingsData> {
+  const file = Bun.file(filePath);
   if (!(await file.exists())) {
     return { version: 1, timings: {} };
   }
@@ -20,14 +20,18 @@ async function readTimingsFile(): Promise<TimingsData> {
   }
 }
 
-async function writeTimingsFile(data: TimingsData): Promise<void> {
-  await Bun.write(TIMINGS_FILE_PATH, JSON.stringify(data, null, 2));
+async function writeTimingsFile(
+  filePath: string,
+  data: TimingsData
+): Promise<void> {
+  await Bun.write(filePath, JSON.stringify(data, null, 2));
 }
 
 export async function saveTimings(
+  filePath: string,
   timingByFile: Record<string, number>
 ): Promise<void> {
-  const data = await readTimingsFile();
+  const data = await readTimingsFile(filePath);
 
   for (const [file, timing] of Object.entries(timingByFile)) {
     // Initialize array if doesn't exist
@@ -47,13 +51,14 @@ export async function saveTimings(
     }
   }
 
-  await writeTimingsFile(data);
+  await writeTimingsFile(filePath, data);
 }
 
 export async function getTimings(
+  filePath: string,
   files: string[]
 ): Promise<Record<string, number>> {
-  const data = await readTimingsFile();
+  const data = await readTimingsFile(filePath);
 
   const timingByFile: Record<string, number> = {};
   for (const file of files) {
