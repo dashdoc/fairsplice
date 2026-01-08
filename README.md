@@ -21,7 +21,7 @@ This tool stores test timings in a local JSON file, keeping the last 10 timings 
   │   1. SPLIT PHASE    │
   └─────────────────────┘
 
-  .fairsplice-timings.json          fairsplice split
+  timings.json                         fairsplice split
   ┌──────────────────────┐         ┌─────────────────┐
   │ {                    │         │                 │
   │   "test_a.py": [2.1],│ ──────▶ │  Load timings   │
@@ -68,7 +68,7 @@ This tool stores test timings in a local JSON file, keeping the last 10 timings 
                                           │
                                           ▼
                               ┌──────────────────────┐
-                              │ .fairsplice-timings  │
+                              │ timings.json         │
                               │ Updated with new     │
                               │ timing data          │◀─── Cached/committed
                               └──────────────────────┘     for next run
@@ -91,50 +91,25 @@ To launch it, run
 bunx fairsplice
 ```
 
-## Configuration
-
-Fairsplice stores timings in a local JSON file (default: `.fairsplice-timings.json` in the current directory).
-
-You can customize the file path using the `FAIRSPLICE_TIMINGS_FILE` environment variable:
-
-```bash
-export FAIRSPLICE_TIMINGS_FILE='/path/to/my-timings.json'
-```
-
-### Using with GitHub Actions
-
-To persist timings across CI runs, you can use GitHub Actions cache:
-
-```yaml
-- name: Cache test timings
-  uses: actions/cache@v4
-  with:
-    path: .fairsplice-timings.json
-    key: fairsplice-timings-${{ github.ref }}
-    restore-keys: |
-      fairsplice-timings-
-```
-
-Alternatively, you can commit the timings file to your repository for simpler persistence.
-
 ## Usage
 
-Fairsplice supports two main commands: `save` and `split`.
+Fairsplice supports two main commands: `save` and `split`. Both require a `--timings-file` parameter to specify where timings are stored.
 
 ### Saving test results
 
 To save test results:
 
 ```bash
-fairsplice save --from <file>
+fairsplice save --timings-file <timings.json> --from <junit.xml>
 ```
 
-- `--from <file>`: Specify the file path to read test results from.
+- `--timings-file <file>`: JSON file to store timings (will be created if it doesn't exist)
+- `--from <file>`: JUnit XML file to read test results from
 
 Example:
 
 ```bash
-fairsplice save --from results/junit.xml
+fairsplice save --timings-file timings.json --from results/junit.xml
 ```
 
 ### Splitting test cases
@@ -142,20 +117,40 @@ fairsplice save --from results/junit.xml
 To split test cases for execution:
 
 ```bash
-fairsplice split --pattern "<pattern>" [--pattern "<anotherPattern>" ...] --total <total> --out <file> --replace-from <string> --replace-to <string> [--replace-from <other> --replace-to <other>]
+fairsplice split --timings-file <timings.json> --pattern "<pattern>" --total <total> --out <file>
 ```
 
-- `--pattern "<pattern>"`: Pattern to match test files. Can be used multiple times to specify multiple patterns.
-- `--total <total>`: Total number of workers in the test environment.
-- `--out <file>`: File to write split test files to (newline separated)
-- `--replace-from <string>`: Substring to replace in the file paths (can be used multiple times)
-- `--replace-to <string>`: Replacement for the substring (can be used multiple times but must match the number of --replace-from)
+- `--timings-file <file>`: JSON file with stored timings
+- `--pattern "<pattern>"`: Pattern to match test files (can be used multiple times)
+- `--total <total>`: Total number of workers
+- `--out <file>`: File to write split result to (JSON array of arrays)
+- `--replace-from <string>`: (Optional) Substring to replace in file paths
+- `--replace-to <string>`: (Optional) Replacement string
 
 Example:
 
 ```bash
-fairsplice split --pattern "test_*.py" --pattern "tests*.py" --total 3 --out split.json
+fairsplice split --timings-file timings.json --pattern "test_*.py" --total 3 --out split.json
 ```
+
+## Using with GitHub Actions
+
+To persist timings across CI runs, use GitHub Actions cache:
+
+```yaml
+- name: Cache test timings
+  uses: actions/cache@v4
+  with:
+    path: timings.json
+    key: fairsplice-timings-${{ github.ref }}
+    restore-keys: |
+      fairsplice-timings-
+
+- name: Split tests
+  run: bunx fairsplice split --timings-file timings.json --pattern "tests/**/*.py" --total 3 --out split.json
+```
+
+Alternatively, you can commit the timings file to your repository for simpler persistence.
 
 ## Help
 

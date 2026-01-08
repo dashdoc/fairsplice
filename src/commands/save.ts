@@ -1,14 +1,13 @@
 import { saveTimings } from "../backend/fileStorage";
 import { parseJunit } from "../lib/junit";
 
-export async function save({ from }: { from: string | undefined }) {
-  if (!from) {
-    console.warn(
-      "Please provide the --from option to specify the file to read test results from"
-    );
-    process.exit(1);
-  }
-
+export async function save({
+  from,
+  timingsFile,
+}: {
+  from: string;
+  timingsFile: string;
+}) {
   // read junit xml file
   const junitXmlFile = Bun.file(from);
   const xmlString = await junitXmlFile.text();
@@ -34,7 +33,7 @@ export async function save({ from }: { from: string | undefined }) {
   }
 
   // save timings
-  await saveTimings(timingByFile);
+  await saveTimings(timingsFile, timingByFile);
   console.log(
     "Timings saved for files:\n",
     Object.keys(timingByFile).join("\n - ")
