@@ -1,14 +1,52 @@
 # Fairsplice
 
-**Warning: this project is still in very early development!**
+Fairsplice is a CLI tool and GitHub Action that optimizes test distribution across parallel workers. It provides CircleCI-style test splitting based on timing data for GitHub Actions.
 
-Fairsplice is a CLI tool designed to optimize test distribution across multiple workers. By intelligently splitting and saving test cases, Fairsplice ensures a balanced workload distribution for your CI/CD pipelines, making tests run time more predictable.
+## Quick Start (GitHub Action)
 
-We found Github Actions lacking when compared to CircleCI which has [tests splitting](https://circleci.com/docs/parallelism-faster-jobs/#how-test-splitting-works) based on timings.
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        index: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
 
-There are a number of projects like [Split tests](https://github.com/marketplace/actions/split-tests) but they require uploading and downloading Junit XML files and merging them, or committing the Junit files to have them when running the tests.
+      - name: Split tests
+        id: split
+        uses: dashdoc/fairsplice@v1
+        with:
+          command: split
+          pattern: 'tests/**/*.py'
+          total: 3
+          index: ${{ matrix.index }}
 
-This tool stores test timings in a local JSON file, keeping the last 10 timings for each test file and using the average for splitting. No external database required!
+      - name: Run tests
+        run: pytest ${{ steps.split.outputs.tests }} --junit-xml=junit-${{ matrix.index }}.xml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: junit-${{ matrix.index }}
+          path: junit-${{ matrix.index }}.xml
+
+  save-timings:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+
+      - name: Merge timings
+        uses: dashdoc/fairsplice@v1
+        with:
+          command: merge
+          prefix: 'junit-*/junit-'
+```
+
+That's it! Caching is handled automatically.
 
 ## How It Works
 
@@ -21,7 +59,7 @@ This tool stores test timings in a local JSON file, keeping the last 10 timings 
   │   1. SPLIT PHASE    │
   └─────────────────────┘
 
-  timings.json                         fairsplice split
+  timings (cached)                       fairsplice split
   ┌──────────────────────┐         ┌─────────────────┐
   │ {                    │         │                 │
   │   "test_a.py": [2.1],│ ──────▶ │  Load timings   │
@@ -39,10 +77,9 @@ This tool stores test timings in a local JSON file, keeping the last 10 timings 
               ▼                             ▼                             ▼
     ┌───────────────────┐       ┌───────────────────┐       ┌───────────────────┐
     │    Worker 0       │       │    Worker 1       │       │    Worker 2       │
-    │  ["test_b.py"]    │       │  ["test_a.py",    │       │  ["test_c.py"]    │
-    │   ~5.3s           │       │   "test_c.py"]    │       │   ~1.8s           │
-    └─────────┬─────────┘       │   ~3.9s           │       └─────────┬─────────┘
-              │                 └─────────┬─────────┘                 │
+    │   ~5.3s           │       │   ~3.9s           │       │   ~5.1s           │
+    └─────────┬─────────┘       └─────────┬─────────┘       └─────────┬─────────┘
+              │                           │                           │
               ▼                           ▼                           ▼
     ┌───────────────────┐       ┌───────────────────┐       ┌───────────────────┐
     │   Run tests       │       │   Run tests       │       │   Run tests       │
@@ -57,130 +94,85 @@ This tool stores test timings in a local JSON file, keeping the last 10 timings 
                                           ▼
                               ┌─────────────────────────┐
                               │   fairsplice merge      │
-                              │   --prefix junit-       │
-                              └─────────────────────────┘
-                                          │
-                                          ▼
-                              ┌─────────────────────────┐
-                              │  Extract timings from   │
-                              │  JUnit XML results      │
+                              │   (extracts timings)    │
                               └─────────────────────────┘
                                           │
                                           ▼
                               ┌──────────────────────┐
-                              │ timings.json         │
-                              │ Updated with new     │
-                              │ timing data          │◀─── Cached/committed
+                              │ timings (cached)     │◀─── Auto-cached
                               └──────────────────────┘     for next run
 ```
 
 **Key concepts:**
-- **Split phase**: Before tests run, fairsplice distributes test files across workers based on historical timing data
-- **Merge phase**: After tests complete, fairsplice extracts timing from JUnit XML and updates the timings file
-- **Bin packing**: Tests are assigned to workers to balance total execution time (heaviest tests first)
-- **Rolling average**: Keeps last 10 timings per test file, uses average for predictions
+- **Split phase**: Distributes test files across workers based on historical timing data
+- **Merge phase**: Extracts timing from JUnit XML and caches for next run
+- **Bin packing**: Assigns tests to balance total execution time (heaviest tests first)
+- **Rolling average**: Keeps last 10 timings per test file for predictions
 
-## Installation
+## GitHub Action Reference
 
-This project is built using [Bun](https://bun.sh).
+### Inputs
 
-Ensure you have Bun installed.
-To launch it, run
+| Input | Required | Description |
+|-------|----------|-------------|
+| `command` | Yes | `split` or `merge` |
+| `timings-file` | No | JSON file for timings (default: `.fairsplice-timings.json`) |
+| `pattern` | For split | Glob pattern to match test files |
+| `total` | For split | Total number of workers |
+| `index` | For split | Current worker index (0-based) |
+| `prefix` | For merge | Prefix to match JUnit XML files |
+
+### Outputs
+
+| Output | Description |
+|--------|-------------|
+| `tests` | Space-separated list of test files (when `index` provided) |
+| `buckets` | JSON array of all test buckets |
+
+## CLI Usage
+
+Install with Bun:
 
 ```bash
 bunx fairsplice
 ```
 
-## Usage
+### Commands
 
-Fairsplice has two commands: `merge` and `split`. Both require a `--timings-file` parameter.
-
-### Merging test results
-
-Save test timings from JUnit XML file(s):
-
+**Split tests:**
 ```bash
-fairsplice merge --timings-file <timings.json> --prefix <prefix>
+fairsplice split --timings-file timings.json --pattern "tests/**/*.py" --total 3 --out split.json
 ```
 
-- `--timings-file <file>`: JSON file to store timings
-- `--prefix <prefix>`: Prefix to match JUnit XML files
-
-Example:
-
+**Merge results:**
 ```bash
-# Merges junit-0.xml, junit-1.xml, junit-2.xml, etc.
 fairsplice merge --timings-file timings.json --prefix junit-
 ```
 
-### Splitting test cases
+### CLI Options
 
-Split test files across workers based on historical timings:
-
-```bash
-fairsplice split --timings-file <timings.json> --pattern "<pattern>" --total <total> --out <file>
 ```
+fairsplice split
+  --timings-file <file>   JSON file with stored timings
+  --pattern <pattern>     Glob pattern for test files (can repeat)
+  --total <n>             Number of workers
+  --out <file>            Output JSON file
 
-- `--timings-file <file>`: JSON file with stored timings
-- `--pattern "<pattern>"`: Pattern to match test files (can be used multiple times)
-- `--total <total>`: Total number of workers
-- `--out <file>`: File to write split result to (JSON array of arrays)
-- `--replace-from <string>`: (Optional) Substring to replace in file paths
-- `--replace-to <string>`: (Optional) Replacement string
-
-Example:
-
-```bash
-fairsplice split --timings-file timings.json --pattern "test_*.py" --total 3 --out split.json
-```
-
-## Using with GitHub Actions
-
-To persist timings across CI runs, use GitHub Actions cache:
-
-```yaml
-- name: Cache test timings
-  uses: actions/cache@v4
-  with:
-    path: timings.json
-    key: fairsplice-timings-${{ github.ref }}
-    restore-keys: |
-      fairsplice-timings-
-
-- name: Split tests
-  run: bunx fairsplice split --timings-file timings.json --pattern "tests/**/*.py" --total 3 --out split.json
-```
-
-Alternatively, you can commit the timings file to your repository for simpler persistence.
-
-## Help
-
-For a detailed list of commands and options, use the help command:
-
-```bash
-fairsplice --help
+fairsplice merge
+  --timings-file <file>   JSON file to store timings
+  --prefix <prefix>       Prefix to match JUnit XML files
 ```
 
 ## Contributing
 
-Contributions are welcome! Please fork the repository and submit a pull request with your improvements.
-
-### Running locally
-
-Launch the development version with:
-
 ```bash
+# Run locally
 bun run index.ts
-```
 
-### Running tests
-
-Launch the following command to run tests:
-
-```bash
-bun test [--watch]
+# Run tests
+bun test
 ```
 
 ## License
 
-Fairsplice is open-source software licensed under the MIT license.
+MIT

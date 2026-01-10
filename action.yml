@@ -1,0 +1,88 @@
+name: 'Fairsplice'
+description: 'Split tests across parallel workers based on timing data'
+branding:
+  icon: 'scissors'
+  color: 'blue'
+
+inputs:
+  command:
+    description: 'Command to run: split or merge'
+    required: true
+  timings-file:
+    description: 'JSON file to store/read timings (default: .fairsplice-timings.json)'
+    required: false
+    default: '.fairsplice-timings.json'
+  # split inputs
+  pattern:
+    description: 'Glob pattern to match test files (for split)'
+    required: false
+  total:
+    description: 'Total number of workers (for split)'
+    required: false
+  index:
+    description: 'Current worker index, 0-based (for split) - outputs only this worker tests'
+    required: false
+  # merge inputs
+  prefix:
+    description: 'Prefix to match JUnit XML files (for merge)'
+    required: false
+
+outputs:
+  tests:
+    description: 'Space-separated list of test files for the current worker (when index is provided)'
+    value: ${{ steps.split.outputs.tests }}
+  buckets:
+    description: 'JSON array of test buckets (when index is not provided)'
+    value: ${{ steps.split.outputs.buckets }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+
+    - name: Restore timings cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ inputs.timings-file }}
+        key: fairsplice-timings-${{ github.repository }}-${{ github.ref_name }}
+        restore-keys: |
+          fairsplice-timings-${{ github.repository }}-
+
+    - name: Run split
+      id: split
+      if: inputs.command == 'split'
+      shell: bash
+      run: |
+        # Run fairsplice split
+        bunx fairsplice@latest split \
+          --timings-file "${{ inputs.timings-file }}" \
+          --pattern "${{ inputs.pattern }}" \
+          --total "${{ inputs.total }}" \
+          --out /tmp/fairsplice-buckets.json
+
+        # Output results
+        if [ -n "${{ inputs.index }}" ]; then
+          # Extract tests for specific worker index
+          TESTS=$(jq -r '.[${{ inputs.index }}] | join(" ")' /tmp/fairsplice-buckets.json)
+          echo "tests=$TESTS" >> $GITHUB_OUTPUT
+        else
+          # Output all buckets
+          BUCKETS=$(cat /tmp/fairsplice-buckets.json)
+          echo "buckets=$BUCKETS" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run merge
+      if: inputs.command == 'merge'
+      shell: bash
+      run: |
+        bunx fairsplice@latest merge \
+          --timings-file "${{ inputs.timings-file }}" \
+          --prefix "${{ inputs.prefix }}"
+
+    - name: Save timings cache
+      if: inputs.command == 'merge'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ inputs.timings-file }}
+        key: fairsplice-timings-${{ github.repository }}-${{ github.ref_name }}-${{ github.run_id }}
