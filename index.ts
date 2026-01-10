@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { merge } from "./src/commands/merge";
 import { save } from "./src/commands/save";
 import { split } from "./src/commands/split";
 import { parseArgs } from "util";
@@ -17,6 +18,10 @@ const { positionals, values } = parseArgs({
     },
     // save options
     from: {
+      type: "string",
+    },
+    // merge options
+    prefix: {
       type: "string",
     },
     // split options
@@ -47,17 +52,28 @@ const command = positionals[2];
 
 if (values.help || !command) {
   console.log(`
-Usage: fairsplice [save|split] [options]
+Usage: fairsplice [save|merge|split] [options]
 
 fairsplice save
 ---------------
-Save test timings from a JUnit XML file.
+Save test timings from a single JUnit XML file.
 
 Required options:
     --timings-file <file>   JSON file to store timings
     --from <file>           JUnit XML file to read test results from
 
 Example: fairsplice save --timings-file timings.json --from results/junit.xml
+
+
+fairsplice merge
+----------------
+Merge and save test timings from multiple JUnit XML files (e.g., from parallel workers).
+
+Required options:
+    --timings-file <file>   JSON file to store timings
+    --prefix <prefix>       Prefix to match JUnit XML files (e.g., "junit-" matches junit-0.xml, junit-1.xml)
+
+Example: fairsplice merge --timings-file timings.json --prefix junit-
 
 
 fairsplice split
@@ -88,6 +104,15 @@ if (command === "save") {
   }
   await save({ from: values.from, timingsFile: values["timings-file"] });
   process.exit(0);
+} else if (command === "merge") {
+  if (!values["timings-file"] || !values.prefix) {
+    console.error(
+      "Error: --timings-file and --prefix are required for the merge command."
+    );
+    process.exit(1);
+  }
+  await merge({ prefix: values.prefix, timingsFile: values["timings-file"] });
+  process.exit(0);
 } else if (command === "split") {
   if (
     !values["timings-file"] ||
@@ -111,7 +136,7 @@ if (command === "save") {
   process.exit(0);
 } else {
   console.error(
-    `Invalid command "${command}". Available commands: save, split.`
+    `Invalid command "${command}". Available commands: save, merge, split.`
   );
   process.exit(1);
 }

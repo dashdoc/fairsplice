@@ -52,12 +52,12 @@ This tool stores test timings in a local JSON file, keeping the last 10 timings 
               └───────────────────────────┴───────────────────────────┘
                                           │
   ┌─────────────────────┐                 │
-  │   2. SAVE PHASE     │                 │
+  │   2. MERGE PHASE    │                 │
   └─────────────────────┘                 │
                                           ▼
                               ┌─────────────────────────┐
-                              │    fairsplice save      │
-                              │    --from junit.xml     │
+                              │   fairsplice merge      │
+                              │   --prefix junit-       │
                               └─────────────────────────┘
                                           │
                                           ▼
@@ -93,11 +93,11 @@ bunx fairsplice
 
 ## Usage
 
-Fairsplice supports two main commands: `save` and `split`. Both require a `--timings-file` parameter to specify where timings are stored.
+Fairsplice supports three commands: `save`, `merge`, and `split`. All require a `--timings-file` parameter to specify where timings are stored.
 
-### Saving test results
+### Saving test results (single file)
 
-To save test results:
+To save test results from a single JUnit XML file:
 
 ```bash
 fairsplice save --timings-file <timings.json> --from <junit.xml>
@@ -110,6 +110,24 @@ Example:
 
 ```bash
 fairsplice save --timings-file timings.json --from results/junit.xml
+```
+
+### Merging test results (multiple files)
+
+To merge and save test results from multiple JUnit XML files (e.g., from parallel workers):
+
+```bash
+fairsplice merge --timings-file <timings.json> --prefix <prefix>
+```
+
+- `--timings-file <file>`: JSON file to store timings
+- `--prefix <prefix>`: Prefix to match JUnit XML files
+
+Example:
+
+```bash
+# Merges junit-0.xml, junit-1.xml, junit-2.xml, etc.
+fairsplice merge --timings-file timings.json --prefix junit-
 ```
 
 ### Splitting test cases
