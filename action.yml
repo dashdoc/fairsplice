@@ -26,8 +26,8 @@ inputs:
   from:
     description: 'JUnit XML file to read (for convert)'
     required: false
-  out:
-    description: 'Output file (for convert: timing JSON)'
+  to:
+    description: 'Timing JSON file to write (for convert)'
     required: false
   # merge inputs
   prefix:
@@ -90,7 +90,7 @@ runs:
       run: |
         bun run ${{ github.action_path }}/index.ts convert \
           --from "${{ inputs.from }}" \
-          --out "${{ inputs.out }}"
+          --to "${{ inputs.to }}"
 
     - name: Run merge
       if: inputs.command == 'merge'

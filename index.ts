@@ -16,6 +16,9 @@ const { positionals, values } = parseArgs({
     from: {
       type: "string",
     },
+    to: {
+      type: "string",
+    },
     // merge options
     ["timings-file"]: {
       type: "string",
@@ -76,9 +79,9 @@ Convert JUnit XML to timing JSON (for a single worker).
 
 Required options:
     --from <file>       JUnit XML file to read
-    --out <file>        Timing JSON file to write
+    --to <file>         Timing JSON file to write
 
-Example: fairsplice convert --from junit.xml --out timing.json
+Example: fairsplice convert --from junit.xml --to timing.json
 
 
 fairsplice merge
@@ -116,13 +119,13 @@ if (command === "split") {
   });
   process.exit(0);
 } else if (command === "convert") {
-  if (!values.from || !values.out) {
+  if (!values.from || !values.to) {
     console.error(
-      "Error: --from and --out are required for the convert command."
+      "Error: --from and --to are required for the convert command."
     );
     process.exit(1);
   }
-  await convert({ from: values.from, out: values.out });
+  await convert({ from: values.from, to: values.to });
   process.exit(0);
 } else if (command === "merge") {
   if (!values["timings-file"] || !values.prefix) {

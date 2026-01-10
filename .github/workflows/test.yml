@@ -61,7 +61,7 @@ jobs:
         with:
           command: convert
           from: junit-${{ matrix.index }}.xml
-          out: timing-${{ matrix.index }}.json
+          to: timing-${{ matrix.index }}.json
 
       - name: Upload timing artifact
         if: always()

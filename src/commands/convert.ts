@@ -2,10 +2,10 @@ import { parseJunit } from "../lib/junit";
 
 export async function convert({
   from,
-  out,
+  to,
 }: {
   from: string;
-  out: string;
+  to: string;
 }) {
   // read junit xml file
   const junitXmlFile = Bun.file(from);
@@ -32,6 +32,6 @@ export async function convert({
   }
 
   // write timings JSON
-  await Bun.write(out, JSON.stringify(timingByFile, null, 2));
-  console.log(`Converted ${Object.keys(timingByFile).length} test timings to ${out}`);
+  await Bun.write(to, JSON.stringify(timingByFile, null, 2));
+  console.log(`Converted ${Object.keys(timingByFile).length} test timings to ${to}`);
 }
