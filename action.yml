@@ -12,6 +12,10 @@ inputs:
     description: 'JSON file to store/read timings (default: .fairsplice-timings.json)'
     required: false
     default: '.fairsplice-timings.json'
+  cache-key:
+    description: 'Cache key for storing timings (use different keys for frontend/backend workflows)'
+    required: false
+    default: 'default'
   # split inputs
   pattern:
     description: 'Glob pattern to match test files (for split)'
@@ -57,9 +61,9 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: ${{ inputs.timings-file }}
-        key: fairsplice-timings-${{ github.repository }}-${{ github.ref_name }}
+        key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}
         restore-keys: |
-          fairsplice-timings-${{ github.repository }}-
+          fairsplice-${{ inputs.cache-key }}-${{ github.repository }}
 
     - name: Run split
       id: split
@@ -105,4 +109,4 @@ runs:
       uses: actions/cache/save@v4
       with:
         path: ${{ inputs.timings-file }}
-        key: fairsplice-timings-${{ github.repository }}-${{ github.ref_name }}-${{ github.run_id }}
+        key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}
