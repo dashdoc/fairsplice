@@ -14,9 +14,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         run: bun install
@@ -24,219 +22,64 @@ jobs:
       - name: Run unit tests
         run: bun test src/
 
-  dummy-tests:
-    name: Dummy Tests with Variable Timings
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Run dummy tests and generate JUnit report
-        run: bun test tests/dummy/ --reporter=junit --reporter-outfile=junit-results.xml
-
-      - name: Display test results
-        run: cat junit-results.xml
-
-      - name: Save timings with fairsplice
-        run: bun run index.ts save --from junit-results.xml
-
-      - name: Display saved timings
-        run: cat .fairsplice-timings.json
-
-      - name: Split tests for 2 workers
-        run: |
-          bun run index.ts split --pattern "tests/dummy/*.test.ts" --total 2 --out split-2.json
-          echo "Split for 2 workers:"
-          cat split-2.json
-
-      - name: Split tests for 3 workers
-        run: |
-          bun run index.ts split --pattern "tests/dummy/*.test.ts" --total 3 --out split-3.json
-          echo "Split for 3 workers:"
-          cat split-3.json
-
-      - name: Upload test artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            junit-results.xml
-            .fairsplice-timings.json
-            split-2.json
-            split-3.json
-
-  # Integration test: simulates real CI workflow with cached timings
-  integration-prepare:
-    name: Prepare Test Split
-    runs-on: ubuntu-latest
-    outputs:
-      has-timings: ${{ steps.check-cache.outputs.cache-hit }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install
-
-      # Try to restore timings from cache (simulates real CI)
-      - name: Restore timings cache
-        id: check-cache
-        uses: actions/cache@v4
-        with:
-          path: .fairsplice-timings.json
-          key: fairsplice-timings-${{ github.ref }}-${{ github.run_number }}
-          restore-keys: |
-            fairsplice-timings-${{ github.ref }}-
-            fairsplice-timings-
-
-      - name: Show timings status
-        run: |
-          if [ -f .fairsplice-timings.json ]; then
-            echo "Using cached timings from previous run:"
-            cat .fairsplice-timings.json
-          else
-            echo "No cached timings found - first run will use default timing (10s per test)"
-            echo "Timings will be collected after this run for future optimization"
-          fi
-
-      # Split tests for workers
-      - name: Split tests for 3 workers
-        run: |
-          bun run index.ts split --pattern "tests/dummy/*.test.ts" --total 3 --out split.json
-          echo "Test split:"
-          cat split.json
-
-      # Upload split file for workers to use
-      - name: Upload split configuration
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-split
-          path: split.json
-
-  # Workers don't need fairsplice installed - they just read split.json and run tests
-  integration-worker:
-    name: Worker ${{ matrix.worker }}
-    needs: integration-prepare
+  # Integration test using the GitHub Action
+  test:
+    name: Test Worker ${{ matrix.index }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        worker: [0, 1, 2]
+        index: [0, 1, 2]
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      # Note: No need to install fairsplice deps - workers just run tests
-
-      - name: Download split configuration
-        uses: actions/download-artifact@v4
-        with:
-          name: test-split
-
-      - name: Get assigned tests
-        id: get-tests
-        run: |
-          TESTS=$(jq -r '.[${{ matrix.worker }}] | join(" ")' split.json)
-          echo "files=$TESTS" >> $GITHUB_OUTPUT
-          echo "Worker ${{ matrix.worker }} assigned: $TESTS"
-
-      - name: Run tests
-        if: steps.get-tests.outputs.files != ''
-        run: |
-          bun test ${{ steps.get-tests.outputs.files }} --reporter=junit --reporter-outfile=junit-worker-${{ matrix.worker }}.xml
-
-      - name: Upload results
-        if: steps.get-tests.outputs.files != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-worker-${{ matrix.worker }}
-          path: junit-worker-${{ matrix.worker }}.xml
-
-  # Collect results and update timings for next run
-  integration-finalize:
-    name: Finalize & Update Timings
-    needs: integration-worker
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         run: bun install
 
-      # Restore existing timings
-      - name: Restore timings cache
-        uses: actions/cache@v4
+      - name: Split tests
+        id: split
+        uses: ./
         with:
-          path: .fairsplice-timings.json
-          key: fairsplice-timings-${{ github.ref }}-${{ github.run_number }}
-          restore-keys: |
-            fairsplice-timings-${{ github.ref }}-
-            fairsplice-timings-
+          command: split
+          pattern: 'tests/dummy/*.test.ts'
+          total: 3
+          index: ${{ matrix.index }}
 
-      # Download all worker results
-      - name: Download worker 0 results
-        uses: actions/download-artifact@v4
+      - name: Show assigned tests
+        run: echo "Worker ${{ matrix.index }} running:${{ steps.split.outputs.tests }}"
+
+      - name: Run tests
+        if: steps.split.outputs.tests != ''
+        run: bun test ${{ steps.split.outputs.tests }} --reporter=junit --reporter-outfile=junit-${{ matrix.index }}.xml
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: junit-worker-0
-          path: results/
-        continue-on-error: true
+          name: junit-${{ matrix.index }}
+          path: junit-${{ matrix.index }}.xml
 
-      - name: Download worker 1 results
-        uses: actions/download-artifact@v4
+  save-timings:
+    name: Save Timings
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+
+      - name: Show downloaded artifacts
+        run: find . -name "*.xml" -type f
+
+      - name: Merge timings
+        uses: ./
         with:
-          name: junit-worker-1
-          path: results/
-        continue-on-error: true
+          command: merge
+          prefix: 'junit-*/junit-'
 
-      - name: Download worker 2 results
-        uses: actions/download-artifact@v4
-        with:
-          name: junit-worker-2
-          path: results/
-        continue-on-error: true
-
-      # Merge and save new timings
-      - name: Save updated timings from all workers
-        run: |
-          echo "Worker result files:"
-          ls -la results/ || echo "No results directory"
-
-          for file in results/junit-worker-*.xml; do
-            if [ -f "$file" ]; then
-              echo "Saving timings from $file"
-              bun run index.ts save --from "$file"
-            fi
-          done
-
-          echo "Updated timings:"
-          cat .fairsplice-timings.json || echo "No timings file"
-
-      - name: Summary
-        run: |
-          echo "## Integration Test Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Timings have been updated and cached for the next run." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Current timings:" >> $GITHUB_STEP_SUMMARY
-          echo '```json' >> $GITHUB_STEP_SUMMARY
-          cat .fairsplice-timings.json >> $GITHUB_STEP_SUMMARY || echo "{}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: Show saved timings
+        run: cat .fairsplice-timings.json
