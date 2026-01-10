@@ -41,6 +41,10 @@ runs:
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2
 
+    - name: Install dependencies
+      shell: bash
+      run: cd ${{ github.action_path }} && bun install --frozen-lockfile
+
     - name: Restore timings cache
       uses: actions/cache/restore@v4
       with:
@@ -55,7 +59,7 @@ runs:
       shell: bash
       run: |
         # Run fairsplice split
-        bunx fairsplice@latest split \
+        bun run ${{ github.action_path }}/index.ts split \
           --timings-file "${{ inputs.timings-file }}" \
           --pattern "${{ inputs.pattern }}" \
           --total "${{ inputs.total }}" \
@@ -76,7 +80,7 @@ runs:
       if: inputs.command == 'merge'
       shell: bash
       run: |
-        bunx fairsplice@latest merge \
+        bun run ${{ github.action_path }}/index.ts merge \
           --timings-file "${{ inputs.timings-file }}" \
           --prefix "${{ inputs.prefix }}"
 
