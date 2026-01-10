@@ -6,7 +6,7 @@ branding:
 
 inputs:
   command:
-    description: 'Command to run: split or merge'
+    description: 'Command to run: split, convert, or merge'
     required: true
   timings-file:
     description: 'JSON file to store/read timings (default: .fairsplice-timings.json)'
@@ -22,9 +22,16 @@ inputs:
   index:
     description: 'Current worker index, 0-based (for split) - outputs only this worker tests'
     required: false
+  # convert inputs
+  from:
+    description: 'JUnit XML file to read (for convert)'
+    required: false
+  out:
+    description: 'Output file (for convert: timing JSON)'
+    required: false
   # merge inputs
   prefix:
-    description: 'Prefix to match JUnit XML files (for merge)'
+    description: 'Prefix to match timing JSON files (for merge)'
     required: false
 
 outputs:
@@ -46,6 +53,7 @@ runs:
       run: cd ${{ github.action_path }} && bun install --frozen-lockfile
 
     - name: Restore timings cache
+      if: inputs.command == 'split' || inputs.command == 'merge'
       uses: actions/cache/restore@v4
       with:
         path: ${{ inputs.timings-file }}
@@ -75,6 +83,14 @@ runs:
           BUCKETS=$(cat /tmp/fairsplice-buckets.json)
           echo "buckets=$BUCKETS" >> $GITHUB_OUTPUT
         fi
+
+    - name: Run convert
+      if: inputs.command == 'convert'
+      shell: bash
+      run: |
+        bun run ${{ github.action_path }}/index.ts convert \
+          --from "${{ inputs.from }}" \
+          --out "${{ inputs.out }}"
 
     - name: Run merge
       if: inputs.command == 'merge'

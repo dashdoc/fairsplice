@@ -55,12 +55,20 @@ jobs:
         if: steps.split.outputs.tests != ''
         run: bun test ${{ steps.split.outputs.tests }} --reporter=junit --reporter-outfile=junit-${{ matrix.index }}.xml
 
-      - name: Upload results
+      - name: Convert JUnit to timing JSON
+        if: steps.split.outputs.tests != ''
+        uses: ./
+        with:
+          command: convert
+          from: junit-${{ matrix.index }}.xml
+          out: timing-${{ matrix.index }}.json
+
+      - name: Upload timing artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: junit-${{ matrix.index }}
-          path: junit-${{ matrix.index }}.xml
+          name: timing-${{ matrix.index }}
+          path: timing-${{ matrix.index }}.json
 
   save-timings:
     name: Save Timings
@@ -73,13 +81,13 @@ jobs:
       - uses: actions/download-artifact@v4
 
       - name: Show downloaded artifacts
-        run: find . -name "*.xml" -type f
+        run: find . -name "*.json" -type f
 
       - name: Merge timings
         uses: ./
         with:
           command: merge
-          prefix: 'junit-*/junit-'
+          prefix: 'timing-*/timing-'
 
       - name: Show saved timings
         run: cat .fairsplice-timings.json

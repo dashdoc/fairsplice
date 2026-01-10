@@ -1,6 +1,5 @@
 import { Glob } from "bun";
 import { saveTimings } from "../backend/fileStorage";
-import { parseJunit } from "../lib/junit";
 
 export async function merge({
   timingsFile,
@@ -9,7 +8,7 @@ export async function merge({
   timingsFile: string;
   prefix: string;
 }) {
-  // find all files matching the prefix pattern
+  // find all timing JSON files matching the prefix pattern
   const glob = new Glob(`${prefix}*`);
   const files = Array.from(glob.scanSync());
 
@@ -18,39 +17,25 @@ export async function merge({
     process.exit(1);
   }
 
-  console.log(`Found ${files.length} files to merge:`);
+  console.log(`Found ${files.length} timing files to merge:`);
   files.forEach((f) => console.log(`  - ${f}`));
 
-  // aggregate timings from all files
+  // aggregate timings from all JSON files
   const timingByFile: Record<string, number> = {};
 
   for (const file of files) {
-    const junitXmlFile = Bun.file(file);
-    const xmlString = await junitXmlFile.text();
+    const content = await Bun.file(file).text();
+    const timings = JSON.parse(content) as Record<string, number>;
 
-    // parse junit xml
-    const testCases = parseJunit(xmlString);
-
-    // aggregate timings
-    for (let testCase of testCases) {
-      if (testCase.file.includes("..")) {
-        continue;
+    for (const [testFile, timing] of Object.entries(timings)) {
+      if (!timingByFile[testFile]) {
+        timingByFile[testFile] = 0;
       }
-      if (!timingByFile[testCase.file]) {
-        timingByFile[testCase.file] = 0;
-      }
-      timingByFile[testCase.file] += testCase.time;
+      timingByFile[testFile] += timing;
     }
   }
 
-  // convert to ms
-  for (const [file, timing] of Object.entries(timingByFile)) {
-    timingByFile[file] = Math.round(timing * 1000);
-  }
-
-  // save timings
+  // save merged timings
   await saveTimings(timingsFile, timingByFile);
-  console.log(
-    `\nTimings saved for ${Object.keys(timingByFile).length} files`
-  );
+  console.log(`\nMerged timings for ${Object.keys(timingByFile).length} files`);
 }

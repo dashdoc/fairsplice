@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { convert } from "./src/commands/convert";
 import { merge } from "./src/commands/merge";
 import { split } from "./src/commands/split";
 import { parseArgs } from "util";
@@ -11,11 +12,14 @@ const { positionals, values } = parseArgs({
       type: "boolean",
       short: "h",
     },
-    // common options
-    ["timings-file"]: {
+    // convert options
+    from: {
       type: "string",
     },
     // merge options
+    ["timings-file"]: {
+      type: "string",
+    },
     prefix: {
       type: "string",
     },
@@ -47,18 +51,7 @@ const command = positionals[2];
 
 if (values.help || !command) {
   console.log(`
-Usage: fairsplice [merge|split] [options]
-
-fairsplice merge
-----------------
-Save test timings from JUnit XML file(s).
-
-Required options:
-    --timings-file <file>   JSON file to store timings
-    --prefix <prefix>       Prefix to match JUnit XML files (e.g., "junit-" matches junit-*.xml)
-
-Example: fairsplice merge --timings-file timings.json --prefix junit-
-
+Usage: fairsplice [split|convert|merge] [options]
 
 fairsplice split
 ----------------
@@ -75,20 +68,33 @@ Optional:
     --replace-to <string>       Replacement string (must match number of --replace-from)
 
 Example: fairsplice split --timings-file timings.json --pattern "test_*.py" --total 3 --out split.json
+
+
+fairsplice convert
+------------------
+Convert JUnit XML to timing JSON (for a single worker).
+
+Required options:
+    --from <file>       JUnit XML file to read
+    --out <file>        Timing JSON file to write
+
+Example: fairsplice convert --from junit.xml --out timing.json
+
+
+fairsplice merge
+----------------
+Merge timing JSON files and save to timings history.
+
+Required options:
+    --timings-file <file>   JSON file to store timing history
+    --prefix <prefix>       Prefix to match timing JSON files
+
+Example: fairsplice merge --timings-file timings.json --prefix timing-
   `);
   process.exit(0);
 }
 
-if (command === "merge") {
-  if (!values["timings-file"] || !values.prefix) {
-    console.error(
-      "Error: --timings-file and --prefix are required for the merge command."
-    );
-    process.exit(1);
-  }
-  await merge({ prefix: values.prefix, timingsFile: values["timings-file"] });
-  process.exit(0);
-} else if (command === "split") {
+if (command === "split") {
   if (
     !values["timings-file"] ||
     !values.pattern ||
@@ -109,9 +115,27 @@ if (command === "merge") {
     timingsFile: values["timings-file"],
   });
   process.exit(0);
+} else if (command === "convert") {
+  if (!values.from || !values.out) {
+    console.error(
+      "Error: --from and --out are required for the convert command."
+    );
+    process.exit(1);
+  }
+  await convert({ from: values.from, out: values.out });
+  process.exit(0);
+} else if (command === "merge") {
+  if (!values["timings-file"] || !values.prefix) {
+    console.error(
+      "Error: --timings-file and --prefix are required for the merge command."
+    );
+    process.exit(1);
+  }
+  await merge({ prefix: values.prefix, timingsFile: values["timings-file"] });
+  process.exit(0);
 } else {
   console.error(
-    `Invalid command "${command}". Available commands: merge, split.`
+    `Invalid command "${command}". Available commands: split, convert, merge.`
   );
   process.exit(1);
 }
