@@ -76,7 +76,7 @@ This tool stores test timings in a local JSON file, keeping the last 10 timings 
 
 **Key concepts:**
 - **Split phase**: Before tests run, fairsplice distributes test files across workers based on historical timing data
-- **Save phase**: After tests complete, fairsplice extracts timing from JUnit XML and updates the timings file
+- **Merge phase**: After tests complete, fairsplice extracts timing from JUnit XML and updates the timings file
 - **Bin packing**: Tests are assigned to workers to balance total execution time (heaviest tests first)
 - **Rolling average**: Keeps last 10 timings per test file, uses average for predictions
 
@@ -93,28 +93,11 @@ bunx fairsplice
 
 ## Usage
 
-Fairsplice supports three commands: `save`, `merge`, and `split`. All require a `--timings-file` parameter to specify where timings are stored.
+Fairsplice has two commands: `merge` and `split`. Both require a `--timings-file` parameter.
 
-### Saving test results (single file)
+### Merging test results
 
-To save test results from a single JUnit XML file:
-
-```bash
-fairsplice save --timings-file <timings.json> --from <junit.xml>
-```
-
-- `--timings-file <file>`: JSON file to store timings (will be created if it doesn't exist)
-- `--from <file>`: JUnit XML file to read test results from
-
-Example:
-
-```bash
-fairsplice save --timings-file timings.json --from results/junit.xml
-```
-
-### Merging test results (multiple files)
-
-To merge and save test results from multiple JUnit XML files (e.g., from parallel workers):
+Save test timings from JUnit XML file(s):
 
 ```bash
 fairsplice merge --timings-file <timings.json> --prefix <prefix>
@@ -132,7 +115,7 @@ fairsplice merge --timings-file timings.json --prefix junit-
 
 ### Splitting test cases
 
-To split test cases for execution:
+Split test files across workers based on historical timings:
 
 ```bash
 fairsplice split --timings-file <timings.json> --pattern "<pattern>" --total <total> --out <file>

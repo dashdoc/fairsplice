@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 
 import { merge } from "./src/commands/merge";
-import { save } from "./src/commands/save";
 import { split } from "./src/commands/split";
 import { parseArgs } from "util";
 
@@ -14,10 +13,6 @@ const { positionals, values } = parseArgs({
     },
     // common options
     ["timings-file"]: {
-      type: "string",
-    },
-    // save options
-    from: {
       type: "string",
     },
     // merge options
@@ -52,26 +47,15 @@ const command = positionals[2];
 
 if (values.help || !command) {
   console.log(`
-Usage: fairsplice [save|merge|split] [options]
-
-fairsplice save
----------------
-Save test timings from a single JUnit XML file.
-
-Required options:
-    --timings-file <file>   JSON file to store timings
-    --from <file>           JUnit XML file to read test results from
-
-Example: fairsplice save --timings-file timings.json --from results/junit.xml
-
+Usage: fairsplice [merge|split] [options]
 
 fairsplice merge
 ----------------
-Merge and save test timings from multiple JUnit XML files (e.g., from parallel workers).
+Save test timings from JUnit XML file(s).
 
 Required options:
     --timings-file <file>   JSON file to store timings
-    --prefix <prefix>       Prefix to match JUnit XML files (e.g., "junit-" matches junit-0.xml, junit-1.xml)
+    --prefix <prefix>       Prefix to match JUnit XML files (e.g., "junit-" matches junit-*.xml)
 
 Example: fairsplice merge --timings-file timings.json --prefix junit-
 
@@ -95,16 +79,7 @@ Example: fairsplice split --timings-file timings.json --pattern "test_*.py" --to
   process.exit(0);
 }
 
-if (command === "save") {
-  if (!values["timings-file"] || !values.from) {
-    console.error(
-      "Error: --timings-file and --from are required for the save command."
-    );
-    process.exit(1);
-  }
-  await save({ from: values.from, timingsFile: values["timings-file"] });
-  process.exit(0);
-} else if (command === "merge") {
+if (command === "merge") {
   if (!values["timings-file"] || !values.prefix) {
     console.error(
       "Error: --timings-file and --prefix are required for the merge command."
@@ -136,7 +111,7 @@ if (command === "save") {
   process.exit(0);
 } else {
   console.error(
-    `Invalid command "${command}". Available commands: save, merge, split.`
+    `Invalid command "${command}". Available commands: merge, split.`
   );
   process.exit(1);
 }
