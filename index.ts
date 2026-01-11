@@ -19,6 +19,9 @@ const { positionals, values } = parseArgs({
     to: {
       type: "string",
     },
+    ["path-prefix"]: {
+      type: "string",
+    },
     // merge options
     ["timings-file"]: {
       type: "string",
@@ -78,10 +81,13 @@ fairsplice convert
 Convert JUnit XML to timing JSON (for a single worker).
 
 Required options:
-    --from <file>       JUnit XML file to read
-    --to <file>         Timing JSON file to write
+    --from <file>           JUnit XML file to read
+    --to <file>             Timing JSON file to write
 
-Example: fairsplice convert --from junit.xml --to timing.json
+Optional:
+    --path-prefix <prefix>  Prefix to prepend to all file paths (e.g., "src/tests/")
+
+Example: fairsplice convert --from junit.xml --to timing.json --path-prefix "frontends/apps/e2e/"
 
 
 fairsplice merge
@@ -125,7 +131,7 @@ if (command === "split") {
     );
     process.exit(1);
   }
-  await convert({ from: values.from, to: values.to });
+  await convert({ from: values.from, to: values.to, pathPrefix: values["path-prefix"] });
   process.exit(0);
 } else if (command === "merge") {
   if (!values["timings-file"] || !values.prefix) {

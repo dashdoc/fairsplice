@@ -3,9 +3,11 @@ import { parseJunit } from "../lib/junit";
 export async function convert({
   from,
   to,
+  pathPrefix,
 }: {
   from: string;
   to: string;
+  pathPrefix?: string;
 }) {
   // check if input file exists
   const junitXmlFile = Bun.file(from);
@@ -27,10 +29,12 @@ export async function convert({
     if (testCase.file.includes("..")) {
       continue;
     }
-    if (!timingByFile[testCase.file]) {
-      timingByFile[testCase.file] = 0;
+    // Apply path prefix if provided
+    const filePath = pathPrefix ? `${pathPrefix}${testCase.file}` : testCase.file;
+    if (!timingByFile[filePath]) {
+      timingByFile[filePath] = 0;
     }
-    timingByFile[testCase.file] += testCase.time;
+    timingByFile[filePath] += testCase.time;
   }
 
   // convert to ms

@@ -32,6 +32,9 @@ inputs:
   to:
     description: 'Timing JSON file to write (for convert)'
     required: false
+  path-prefix:
+    description: 'Prefix to prepend to file paths (for convert) - use to match paths with split pattern'
+    required: false
   # merge inputs
   prefix:
     description: 'Prefix to match timing JSON files (for merge)'
@@ -101,7 +104,8 @@ runs:
       run: |
         bun run ${{ github.action_path }}/index.ts convert \
           --from "${{ inputs.from }}" \
-          --to "${{ inputs.to }}"
+          --to "${{ inputs.to }}" \
+          ${{ inputs.path-prefix != '' && format('--path-prefix "{0}"', inputs.path-prefix) || '' }}
 
     - name: Run merge
       if: inputs.command == 'merge'
