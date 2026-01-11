@@ -47,6 +47,7 @@ jobs:
           pattern: 'tests/dummy/*.test.ts'
           total: 3
           index: ${{ matrix.index }}
+          cache-key: integration-tests
 
       - name: Show assigned tests
         run: echo "Worker ${{ matrix.index }} running:${{ steps.split.outputs.tests }}"
@@ -88,6 +89,7 @@ jobs:
         with:
           command: merge
           prefix: 'timing-*/timing-'
+          cache-key: integration-tests
 
       - name: Show saved timings
         run: cat .fairsplice-timings.json

@@ -22,6 +22,7 @@ jobs:
           pattern: 'tests/**/*.py'
           total: 3
           index: ${{ matrix.index }}
+          cache-key: python-tests
 
       - name: Run tests
         run: pytest ${{ steps.split.outputs.tests }} --junit-xml=junit-${{ matrix.index }}.xml
@@ -44,6 +45,7 @@ jobs:
         with:
           command: merge
           prefix: 'junit-*/junit-'
+          cache-key: python-tests
 ```
 
 That's it! Caching is handled automatically.
@@ -116,11 +118,23 @@ That's it! Caching is handled automatically.
 | Input | Required | Description |
 |-------|----------|-------------|
 | `command` | Yes | `split` or `merge` |
+| `cache-key` | Yes | Cache key for storing timings (use different keys for frontend/backend workflows) |
 | `timings-file` | No | JSON file for timings (default: `.fairsplice-timings.json`) |
 | `pattern` | For split | Glob pattern to match test files |
 | `total` | For split | Total number of workers |
 | `index` | For split | Current worker index (0-based) |
 | `prefix` | For merge | Prefix to match JUnit XML files |
+
+### Cache Behavior
+
+Fairsplice uses GitHub Actions cache for storing timing history. Important characteristics:
+
+- **Repository-scoped, branch-gated**: Caches are repository-scoped but restore access is gated by branch context
+- **Default branch is global**: Caches saved from the default branch (usually `main`) are restorable by all branches
+- **Immutable, single-writer**: Each cache key can only be written once; updates require a new key (handled automatically via run ID suffix)
+- **Asymmetric cross-branch sharing**: Restore is permissive (branches can read from main), save is restricted (branches can only write to their own scope)
+
+To seed shared timings for all branches, run the workflow on `main` first. Subsequent PRs and feature branches will restore timings from main's cache.
 
 ### Outputs
 
