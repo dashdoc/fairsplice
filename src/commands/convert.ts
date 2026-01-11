@@ -7,8 +7,15 @@ export async function convert({
   from: string;
   to: string;
 }) {
-  // read junit xml file
+  // check if input file exists
   const junitXmlFile = Bun.file(from);
+  if (!(await junitXmlFile.exists())) {
+    console.warn(`Input file not found: ${from}`);
+    console.warn(`Skipping convert (this is normal if tests were skipped or failed early)`);
+    return;
+  }
+
+  // read junit xml file
   const xmlString = await junitXmlFile.text();
 
   // parse junit xml
