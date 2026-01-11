@@ -14,7 +14,8 @@ export async function merge({
 
   if (files.length === 0) {
     console.warn(`No files found matching prefix: ${prefix}*`);
-    process.exit(1);
+    console.warn(`Skipping merge (this is normal if all tests failed or were skipped)`);
+    return;
   }
 
   console.log(`Found ${files.length} timing files to merge:`);
