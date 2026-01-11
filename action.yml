@@ -72,7 +72,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: ${{ inputs.timings-file }}
-        key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}
+        key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-
 
     - name: Run split
@@ -120,4 +120,4 @@ runs:
       uses: actions/cache/save@v4
       with:
         path: ${{ inputs.timings-file }}
-        key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}
+        key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
