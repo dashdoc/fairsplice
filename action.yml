@@ -13,8 +13,8 @@ inputs:
     required: false
     default: '.fairsplice-timings.json'
   cache-key:
-    description: 'Cache key for storing timings (use different keys for frontend/backend workflows)'
-    required: true
+    description: 'Cache key for storing timings (required for split and merge commands)'
+    required: false
   # split inputs
   pattern:
     description: 'Glob pattern to match test files (for split)'
@@ -48,6 +48,13 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Validate cache-key for split/merge
+      if: (inputs.command == 'split' || inputs.command == 'merge') && inputs.cache-key == ''
+      shell: bash
+      run: |
+        echo "::error::cache-key is required for split and merge commands"
+        exit 1
+
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2
 

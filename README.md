@@ -25,12 +25,19 @@ jobs:
           cache-key: python-tests
 
       - name: Run tests
-        run: pytest ${{ steps.split.outputs.tests }} --junit-xml=junit-${{ matrix.index }}.xml
+        run: pytest ${{ steps.split.outputs.tests }} --junit-xml=junit.xml
+
+      - name: Convert JUnit to timing JSON
+        uses: dashdoc/fairsplice@v1
+        with:
+          command: convert
+          from: junit.xml
+          to: timing.json
 
       - uses: actions/upload-artifact@v4
         with:
-          name: junit-${{ matrix.index }}
-          path: junit-${{ matrix.index }}.xml
+          name: timing-${{ matrix.index }}
+          path: timing.json
 
   save-timings:
     needs: test
@@ -44,7 +51,7 @@ jobs:
         uses: dashdoc/fairsplice@v1
         with:
           command: merge
-          prefix: 'junit-*/junit-'
+          prefix: 'timing-*/timing'
           cache-key: python-tests
 ```
 
@@ -107,7 +114,8 @@ That's it! Caching is handled automatically.
 
 **Key concepts:**
 - **Split phase**: Distributes test files across workers based on historical timing data
-- **Merge phase**: Extracts timing from JUnit XML and caches for next run
+- **Convert phase**: Extracts timing from JUnit XML into timing JSON (one per worker)
+- **Merge phase**: Combines timing JSON files from all workers and caches for next run
 - **Bin packing**: Assigns tests to balance total execution time (heaviest tests first)
 - **Rolling average**: Keeps last 10 timings per test file for predictions
 
@@ -117,13 +125,15 @@ That's it! Caching is handled automatically.
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `command` | Yes | `split` or `merge` |
-| `cache-key` | Yes | Cache key for storing timings (use different keys for frontend/backend workflows) |
+| `command` | Yes | `split`, `convert`, or `merge` |
+| `cache-key` | For split/merge | Cache key for storing timings (use different keys for frontend/backend workflows) |
 | `timings-file` | No | JSON file for timings (default: `.fairsplice-timings.json`) |
 | `pattern` | For split | Glob pattern to match test files |
 | `total` | For split | Total number of workers |
 | `index` | For split | Current worker index (0-based) |
-| `prefix` | For merge | Prefix to match JUnit XML files |
+| `from` | For convert | JUnit XML file to read |
+| `to` | For convert | Timing JSON file to write |
+| `prefix` | For merge | Prefix to match timing JSON files |
 
 ### Cache Behavior
 
@@ -158,9 +168,14 @@ bunx fairsplice
 fairsplice split --timings-file timings.json --pattern "tests/**/*.py" --total 3 --out split.json
 ```
 
-**Merge results:**
+**Convert JUnit XML to timing JSON:**
 ```bash
-fairsplice merge --timings-file timings.json --prefix junit-
+fairsplice convert --from junit.xml --to timing.json
+```
+
+**Merge timing results:**
+```bash
+fairsplice merge --timings-file timings.json --prefix timing-
 ```
 
 ### CLI Options
@@ -172,9 +187,13 @@ fairsplice split
   --total <n>             Number of workers
   --out <file>            Output JSON file
 
+fairsplice convert
+  --from <file>           JUnit XML file to read
+  --to <file>             Timing JSON file to write
+
 fairsplice merge
   --timings-file <file>   JSON file to store timings
-  --prefix <prefix>       Prefix to match JUnit XML files
+  --prefix <prefix>       Prefix to match timing JSON files
 ```
 
 ## Contributing
