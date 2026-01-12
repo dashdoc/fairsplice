@@ -133,6 +133,7 @@ That's it! Caching is handled automatically.
 | `index` | For split | Current worker index (0-based) |
 | `from` | For convert | JUnit XML file to read |
 | `to` | For convert | Timing JSON file to write |
+| `path-prefix` | For convert | Prefix to prepend to file paths (to match split pattern) |
 | `prefix` | For merge | Prefix to match timing JSON files |
 
 ### Cache Behavior
@@ -190,6 +191,7 @@ fairsplice split
 fairsplice convert
   --from <file>           JUnit XML file to read
   --to <file>             Timing JSON file to write
+  --path-prefix <prefix>  Prefix to prepend to file paths
 
 fairsplice merge
   --timings-file <file>   JSON file to store timings
