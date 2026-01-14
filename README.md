@@ -4,13 +4,15 @@ Fairsplice is a CLI tool and GitHub Action that optimizes test distribution acro
 
 ## Quick Start (GitHub Action)
 
+**Recommended:** Compute splits once and pass to test jobs. This ensures re-running a failed job runs the same tests.
+
 ```yaml
 jobs:
-  test:
+  # Compute splits once - ensures consistent re-runs
+  compute-splits:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        index: [0, 1, 2]
+    outputs:
+      test-buckets: ${{ steps.split.outputs.buckets }}
     steps:
       - uses: actions/checkout@v4
 
@@ -21,8 +23,22 @@ jobs:
           command: split
           pattern: 'tests/**/*.py'
           total: 3
-          index: ${{ matrix.index }}
           cache-key: python-tests
+          # No index = outputs all buckets as JSON array
+
+  test:
+    needs: compute-splits
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        index: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get test files
+        id: split
+        run: |
+          echo "tests=$(echo '${{ needs.compute-splits.outputs.test-buckets }}' | jq -r '.[${{ matrix.index }}] | join(" ")')" >> "$GITHUB_OUTPUT"
 
       - name: Run tests
         run: pytest ${{ steps.split.outputs.tests }} --junit-xml=junit.xml
@@ -56,6 +72,15 @@ jobs:
 ```
 
 That's it! Caching is handled automatically.
+
+### Why compute splits once?
+
+When you compute splits inside each matrix job (using `index`), re-running a failed job can run different tests:
+1. Other jobs may have updated the timing cache
+2. The re-run computes a new split with updated timings
+3. The failed test might now be assigned to a different worker
+
+By computing splits once in a dedicated job and passing via workflow outputs, GitHub Actions preserves the same split on re-runs.
 
 ## How It Works
 
