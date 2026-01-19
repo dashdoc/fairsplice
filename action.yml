@@ -1,0 +1,123 @@
+name: 'Fairsplice'
+description: 'Split tests across parallel workers based on timing data'
+branding:
+  icon: 'scissors'
+  color: 'blue'
+
+inputs:
+  command:
+    description: 'Command to run: split, convert, or merge'
+    required: true
+  timings-file:
+    description: 'JSON file to store/read timings (default: .fairsplice-timings.json)'
+    required: false
+    default: '.fairsplice-timings.json'
+  cache-key:
+    description: 'Cache key for storing timings (required for split and merge commands)'
+    required: false
+  # split inputs
+  pattern:
+    description: 'Glob pattern to match test files (for split)'
+    required: false
+  total:
+    description: 'Total number of workers (for split)'
+    required: false
+  index:
+    description: 'Current worker index, 0-based (for split) - outputs only this worker tests'
+    required: false
+  # convert inputs
+  from:
+    description: 'JUnit XML file to read (for convert)'
+    required: false
+  to:
+    description: 'Timing JSON file to write (for convert)'
+    required: false
+  path-prefix:
+    description: 'Prefix to prepend to file paths (for convert) - use to match paths with split pattern'
+    required: false
+  # merge inputs
+  prefix:
+    description: 'Prefix to match timing JSON files (for merge)'
+    required: false
+
+outputs:
+  tests:
+    description: 'Space-separated list of test files for the current worker (when index is provided)'
+    value: ${{ steps.split.outputs.tests }}
+  buckets:
+    description: 'JSON array of test buckets (when index is not provided)'
+    value: ${{ steps.split.outputs.buckets }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate cache-key for split/merge
+      if: (inputs.command == 'split' || inputs.command == 'merge') && inputs.cache-key == ''
+      shell: bash
+      run: |
+        echo "::error::cache-key is required for split and merge commands"
+        exit 1
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: "1.2.23"
+
+    - name: Install dependencies
+      shell: bash
+      run: cd ${{ github.action_path }} && bun install --frozen-lockfile
+
+    - name: Restore timings cache
+      if: inputs.command == 'split' || inputs.command == 'merge'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ inputs.timings-file }}
+        key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-
+
+    - name: Run split
+      id: split
+      if: inputs.command == 'split'
+      shell: bash
+      run: |
+        # Run fairsplice split
+        bun run ${{ github.action_path }}/index.ts split \
+          --timings-file "${{ inputs.timings-file }}" \
+          --pattern "${{ inputs.pattern }}" \
+          --total "${{ inputs.total }}" \
+          --out /tmp/fairsplice-buckets.json
+
+        # Output results
+        if [ -n "${{ inputs.index }}" ]; then
+          # Extract tests for specific worker index
+          TESTS=$(jq -r '.[${{ inputs.index }}] | join(" ")' /tmp/fairsplice-buckets.json)
+          echo "tests=$TESTS" >> $GITHUB_OUTPUT
+        else
+          # Output all buckets
+          BUCKETS=$(cat /tmp/fairsplice-buckets.json)
+          echo "buckets=$BUCKETS" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run convert
+      if: inputs.command == 'convert'
+      shell: bash
+      run: |
+        bun run ${{ github.action_path }}/index.ts convert \
+          --from "${{ inputs.from }}" \
+          --to "${{ inputs.to }}" \
+          ${{ inputs.path-prefix != '' && format('--path-prefix "{0}"', inputs.path-prefix) || '' }}
+
+    - name: Run merge
+      if: inputs.command == 'merge'
+      shell: bash
+      run: |
+        bun run ${{ github.action_path }}/index.ts merge \
+          --timings-file "${{ inputs.timings-file }}" \
+          --prefix "${{ inputs.prefix }}"
+
+    - name: Save timings cache
+      if: inputs.command == 'merge'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ inputs.timings-file }}
+        key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}

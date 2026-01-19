@@ -1,0 +1,95 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run unit tests
+        run: bun test src/
+
+  # Integration test using the GitHub Action
+  test:
+    name: Test Worker ${{ matrix.index }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        index: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Split tests
+        id: split
+        uses: ./
+        with:
+          command: split
+          pattern: 'tests/dummy/*.test.ts'
+          total: 3
+          index: ${{ matrix.index }}
+          cache-key: integration-tests
+
+      - name: Show assigned tests
+        run: echo "Worker ${{ matrix.index }} running:${{ steps.split.outputs.tests }}"
+
+      - name: Run tests
+        if: steps.split.outputs.tests != ''
+        run: bun test ${{ steps.split.outputs.tests }} --reporter=junit --reporter-outfile=junit-${{ matrix.index }}.xml
+
+      - name: Convert JUnit to timing JSON
+        if: steps.split.outputs.tests != ''
+        uses: ./
+        with:
+          command: convert
+          from: junit-${{ matrix.index }}.xml
+          to: timing-${{ matrix.index }}.json
+
+      - name: Upload timing artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timing-${{ matrix.index }}
+          path: timing-${{ matrix.index }}.json
+
+  save-timings:
+    name: Save Timings
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+
+      - name: Show downloaded artifacts
+        run: find . -name "*.json" -type f
+
+      - name: Merge timings
+        uses: ./
+        with:
+          command: merge
+          prefix: 'timing-*/timing-'
+          cache-key: integration-tests
+
+      - name: Show saved timings
+        run: cat .fairsplice-timings.json
