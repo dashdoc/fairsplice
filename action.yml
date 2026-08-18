@@ -69,7 +69,7 @@ runs:
 
     - name: Restore timings cache
       if: inputs.command == 'split' || inputs.command == 'merge'
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ${{ inputs.timings-file }}
         key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -117,7 +117,7 @@ runs:
 
     - name: Save timings cache
       if: inputs.command == 'merge'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ${{ inputs.timings-file }}
         key: fairsplice-${{ inputs.cache-key }}-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
